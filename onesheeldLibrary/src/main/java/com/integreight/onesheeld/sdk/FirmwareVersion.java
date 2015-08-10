@@ -17,4 +17,10 @@ public class FirmwareVersion {
         return minorVersion;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o != null && o instanceof FirmwareVersion)
+            return this.majorVersion == ((FirmwareVersion) o).majorVersion && this.minorVersion == ((FirmwareVersion) o).minorVersion;
+        else return false;
+    }
 }

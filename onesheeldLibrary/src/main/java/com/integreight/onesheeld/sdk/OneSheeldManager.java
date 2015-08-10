@@ -17,8 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class OneSheeldManager {
-    //    OneSheeldManager.broadcastRawData(byte[]);
-//    OneSheeldManager.broadcastFrame(ShieldFrame);
     private static OneSheeldManager instance = null;
     private final Object currentStateLock = new Object();
     private int retryCount;
@@ -97,6 +95,24 @@ public class OneSheeldManager {
     public ConnectionState getCurrentState() {
         synchronized (currentStateLock) {
             return currentState;
+        }
+    }
+
+    public void broadcastSerialData(byte[] data) {
+        for (OneSheeldDevice device : connectedDevices.values()) {
+            device.sendSerialData(data);
+        }
+    }
+
+    public void broadcastShieldFrame(ShieldFrame frame) {
+        for (OneSheeldDevice device : connectedDevices.values()) {
+            device.sendShieldFrame(frame);
+        }
+    }
+
+    public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
+        for (OneSheeldDevice device : connectedDevices.values()) {
+            device.sendShieldFrame(frame, waitIfInACallback);
         }
     }
 

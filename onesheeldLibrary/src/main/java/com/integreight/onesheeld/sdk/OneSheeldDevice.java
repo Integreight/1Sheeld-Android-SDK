@@ -20,29 +20,22 @@ public class OneSheeldDevice {
     public static final byte INPUT = 0;
     public static final byte OUTPUT = 1;
     public static final byte PWM = 3;
-    public static final byte SERVO = 4;
     public static final boolean LOW = false;
     public static final boolean HIGH = true;
-    private static Queue<ShieldFrame> queuedFrames;
-    private final Object isConnectedLock = new Object();
     private final char MAX_DATA_BYTES = 4096;
     private final char MAX_OUTPUT_BYTES = 32;
     private final byte DIGITAL_MESSAGE = (byte) 0x90;
     private final byte ANALOG_MESSAGE = (byte) 0xE0;
-    private final byte REPORT_ANALOG = (byte) 0xC0;
     private final byte REPORT_DIGITAL = (byte) 0xD0;
     private final byte SET_PIN_MODE = (byte) 0xF4;
     private final byte REPORT_VERSION = (byte) 0xF9;
-    private final byte SYSTEM_RESET = (byte) 0xFF;
     private final byte START_SYSEX = (byte) 0xF0;
     private final byte END_SYSEX = (byte) 0xF7;
     private final byte REPORT_INPUT_PINS = (byte) 0x5F;
-    private final byte RESET_MICRO = (byte) 0x60;
     private final byte BLUETOOTH_RESET = (byte) 0x61;
     private final byte IS_ALIVE = (byte) 0x62;
     private final byte MUTE_FIRMATA = (byte) 0x64;
-    private final byte UART_COMMAND = (byte) 0x65;
-    private final byte UART_DATA = (byte) 0x66;
+    private final byte SERIAL_DATA = (byte) 0x66;
     private final byte CONFIGURATION_SHIELD_ID = (byte) 0x00;
     private final byte BT_CONNECTED = (byte) 0x01;
     private final byte QUERY_LIBRARY_VERSION = (byte) 0x03;
@@ -52,17 +45,19 @@ public class OneSheeldDevice {
     private final byte IS_CALLBACK_EXITED = (byte) 0x04;
     private final Object sysexLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
-    LinkedBlockingQueue<Byte> bluetoothBuffer;
-    LinkedBlockingQueue<Byte> uartBuffer;
-    BluetoothBufferListeningThread bluetoothBufferListeningThread;
-    UartListeningThread uartListeningThread;
+    private final Object isConnectedLock = new Object();
+    private Queue<ShieldFrame> queuedFrames;
+    private LinkedBlockingQueue<Byte> bluetoothBuffer;
+    private LinkedBlockingQueue<Byte> serialBuffer;
+    private BluetoothBufferListeningThread bluetoothBufferListeningThread;
+    private SerialBufferListeningThread serialBufferListeningThread;
     private String name;
     private String address;
     private boolean isPaired;
     private BluetoothDevice bluetoothDevice;
     private ConnectedThread connectedThread;
     private boolean isBluetoothBufferWaiting;
-    private boolean isUartBufferWaiting;
+    private boolean isSerialBufferWaiting;
     private TimeOut ShieldFrameTimeout;
     private boolean isConnected;
     private OneSheeldManager manager;
@@ -70,33 +65,30 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldErrorCallback> errorCallbacks;
     private CopyOnWriteArrayList<OneSheeldDataCallback> dataCallbacks;
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
-    private int arduinoLibraryVersion = -1;
+    private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
     private TimeOut callbacksTimeout;
     private long lastTimeCallbacksExited;
-    private int sysexBytesCount = 0;
-    private int waitForData = 0;
-    private byte executeMultiByteCommand = 0;
-    private byte multiByteChannel = 0;
-    private byte[] storedInputData = new byte[MAX_DATA_BYTES];
-    private boolean parsingSysex = false;
-    private int sysexBytesRead = 0;
-    private int[] digitalOutputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0};
-    private int[] digitalInputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0};
-    private int[] analogInputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0};
-    private int majorVersion = 0;
-    private int minorVersion = 0;
-    private boolean isVersionQueried = false;
+    private int waitForData;
+    private byte executeMultiByteCommand;
+    private byte multiByteChannel;
+    private byte[] storedInputData;
+    private boolean parsingSysex;
+    private int sysexBytesRead;
+    private int majorVersion;
+    private int minorVersion;
+    private boolean isFirmwareVersionQueried;
+    private boolean isLibraryVersionQueried;
     private boolean isInACallback;
+    private boolean isMuted;
+    private int[] digitalOutputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    private int[] digitalInputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     public OneSheeldDevice(String address) {
         checkBluetoothAddress(address);
-        this.name = null;
+        name = null;
         this.address = address;
-        this.isPaired = false;
+        isPaired = false;
         initialize();
     }
 
@@ -104,7 +96,7 @@ public class OneSheeldDevice {
         checkBluetoothAddress(address);
         this.name = name;
         this.address = address;
-        this.isPaired = false;
+        isPaired = false;
         initialize();
     }
 
@@ -117,21 +109,33 @@ public class OneSheeldDevice {
     }
 
     private void initialize() {
-        this.bluetoothDevice = BluetoothUtils.getBluetoothAdapter().getRemoteDevice(address);
-        this.isConnected = false;
-        this.bluetoothBuffer = new LinkedBlockingQueue<>();
-        this.uartBuffer = new LinkedBlockingQueue<>();
-        this.manager = OneSheeldManager.getInstance();
-        this.connectionCallbacks = new CopyOnWriteArrayList<>();
-        this.errorCallbacks = new CopyOnWriteArrayList<>();
-        this.dataCallbacks = new CopyOnWriteArrayList<>();
-        this.versionQueryCallbacks = new CopyOnWriteArrayList<>();
-        this.queuedFrames = new ConcurrentLinkedQueue<>();
+        bluetoothDevice = BluetoothUtils.getBluetoothAdapter().getRemoteDevice(address);
+        isConnected = false;
+        bluetoothBuffer = new LinkedBlockingQueue<>();
+        serialBuffer = new LinkedBlockingQueue<>();
+        manager = OneSheeldManager.getInstance();
+        connectionCallbacks = new CopyOnWriteArrayList<>();
+        errorCallbacks = new CopyOnWriteArrayList<>();
+        dataCallbacks = new CopyOnWriteArrayList<>();
+        versionQueryCallbacks = new CopyOnWriteArrayList<>();
+        queuedFrames = new ConcurrentLinkedQueue<>();
+        isMuted = false;
+        arduinoLibraryVersion = 0;
+        majorVersion = 0;
+        minorVersion = 0;
+        isFirmwareVersionQueried = false;
+        isLibraryVersionQueried = false;
+        sysexBytesRead = 0;
+        parsingSysex = false;
+        waitForData = 0;
+        executeMultiByteCommand = 0;
+        multiByteChannel = 0;
+        storedInputData = new byte[MAX_DATA_BYTES];
     }
 
-    public void stopBuffersThreads() {
-        if (uartListeningThread != null) {
-            uartListeningThread.stopRunning();
+    private void stopBuffersThreads() {
+        if (serialBufferListeningThread != null) {
+            serialBufferListeningThread.stopRunning();
         }
         if (bluetoothBufferListeningThread != null) {
             bluetoothBufferListeningThread.stopRunning();
@@ -187,15 +191,15 @@ public class OneSheeldDevice {
 
     private void clearAllBuffers() {
         bluetoothBuffer.clear();
-        uartBuffer.clear();
+        serialBuffer.clear();
     }
 
-    private byte readByteFromUartBuffer() throws InterruptedException,
+    private byte readByteFromSerialBuffer() throws InterruptedException,
             ShieldFrameNotComplete {
         if (ShieldFrameTimeout != null && ShieldFrameTimeout.isTimeout())
             throw new ShieldFrameNotComplete();
-        isUartBufferWaiting = true;
-        byte temp = uartBuffer.take().byteValue();
+        isSerialBufferWaiting = true;
+        byte temp = serialBuffer.take().byteValue();
         if (ShieldFrameTimeout != null)
             ShieldFrameTimeout.resetTimer();
         return temp;
@@ -212,7 +216,7 @@ public class OneSheeldDevice {
         }
     }
 
-    public BluetoothDevice getBluetoothDevice() {
+    BluetoothDevice getBluetoothDevice() {
         return bluetoothDevice;
     }
 
@@ -336,7 +340,6 @@ public class OneSheeldDevice {
                 synchronized (arduinoCallbacksLock) {
                     isInACallback = true;
                 }
-
                 if (callbacksTimeout == null || (callbacksTimeout != null && !callbacksTimeout.isAlive())) {
                     callbacksTimeout = new TimeOut(5000, 1000, new TimeOut.TimeOutCallback() {
                         @Override
@@ -351,12 +354,9 @@ public class OneSheeldDevice {
                     });
                 } else
                     callbacksTimeout.resetTimer();
-
-
             }
         });
         enteringCallbacksThread.start();
-
     }
 
     private void callbackExited() {
@@ -370,7 +370,7 @@ public class OneSheeldDevice {
         exitingCallbacksThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                boolean sent = false;
+                boolean sent;
                 while (queuedFrames != null && !queuedFrames.isEmpty()) {
                     sent = false;
                     synchronized (arduinoCallbacksLock) {
@@ -396,7 +396,7 @@ public class OneSheeldDevice {
             return;
         }
 
-        boolean inACallback = false;
+        boolean inACallback;
 
         synchronized (arduinoCallbacksLock) {
             inACallback = isInACallback;
@@ -428,7 +428,7 @@ public class OneSheeldDevice {
             return;
         byte[] frameBytes = frame.getAllFrameAsBytes();
         int maxShieldFrameBytes = (MAX_OUTPUT_BYTES - 3) / 2;
-        ArrayList<byte[]> subArrays = new ArrayList<byte[]>();
+        ArrayList<byte[]> subArrays = new ArrayList<>();
         for (int i = 0; i < frameBytes.length; i += maxShieldFrameBytes) {
             byte[] subArray = (i + maxShieldFrameBytes > frameBytes.length) ? ArrayUtils
                     .copyOfRange(frameBytes, i, frameBytes.length) : ArrayUtils
@@ -437,7 +437,7 @@ public class OneSheeldDevice {
         }
         synchronized (sysexLock) {
             for (byte[] sub : subArrays)
-                sysex(UART_DATA, sub);
+                sysex(SERIAL_DATA, sub);
         }
     }
 
@@ -447,23 +447,25 @@ public class OneSheeldDevice {
         }
     }
 
-    public void enableReporting() {
-        for (byte i = 0; i < 6; i++) {
-            write(new byte[]{(byte) (REPORT_ANALOG | i), 1});
+    public void sendSerialData(byte[] data) {
+        synchronized (sysexLock) {
+            sysex(SERIAL_DATA, data);
         }
+    }
 
+    private void enableReporting() {
         for (byte i = 0; i < 3; i++) {
             write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
         }
     }
 
-    public void reportInputPinsValues() {
+    private void reportInputPinsValues() {
         synchronized (sysexLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
     }
 
-    public void setAllPinsAsInput() {
+    private void setAllPinsAsInput() {
         for (int i = 0; i < 20; i++) {
             pinMode(i, INPUT);
         }
@@ -472,10 +474,6 @@ public class OneSheeldDevice {
 
     public boolean digitalRead(int pin) {
         return ((digitalInputData[pin >> 3] >> (pin & 0x07)) & 0x01) > 0;
-    }
-
-    public int analogRead(int pin) {
-        return analogInputData[pin];
     }
 
     public void pinMode(int pin, byte mode) {
@@ -510,20 +508,23 @@ public class OneSheeldDevice {
 //        }
     }
 
-    private void setAnalogInput(int pin, int value) {
-        analogInputData[pin] = value;
-        pin = pin + 14; // for arduino uno analog pin mapping
-//        for (ArduinoFirmataDataHandler dataHandler : dataHandlers) {
-//            dataHandler.onAnalog(pin, value);
-//        }
+    public void queryFirmwareVersion() {
+        isFirmwareVersionQueried = false;
+        write(REPORT_VERSION);
     }
 
-    private void queryFirmwareVersion() {
-        write(new byte[]{REPORT_VERSION});
-    }
-
-    private void queryLibraryVersion() {
+    public void queryLibraryVersion() {
+        isLibraryVersionQueried = false;
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION));
+    }
+
+
+    public boolean hasRespondedToFirmwareVersionQuery() {
+        return isFirmwareVersionQueried;
+    }
+
+    public boolean hasRespondedToLibraryVersionQuery() {
+        return isLibraryVersionQueried;
     }
 
     private void write(byte[] writeData) {
@@ -538,43 +539,77 @@ public class OneSheeldDevice {
 
     private void initFirmata() {
         isBluetoothBufferWaiting = false;
-        isUartBufferWaiting = false;
+        isSerialBufferWaiting = false;
+        isMuted = false;
+        arduinoLibraryVersion = -1;
         stopBuffersThreads();
         clearAllBuffers();
         resetProcessInput();
-        isVersionQueried = false;
         bluetoothBufferListeningThread = new BluetoothBufferListeningThread();
-        uartListeningThread = new UartListeningThread();
+        serialBufferListeningThread = new SerialBufferListeningThread();
         while (!isBluetoothBufferWaiting) ;
-        while (!isUartBufferWaiting) ;
+        while (!isSerialBufferWaiting) ;
         enableReporting();
         setAllPinsAsInput();
         reportInputPinsValues();
-        onConnect();
         respondToIsAlive();
         queryFirmwareVersion();
         notifyHardwareOfConnection();
         queryLibraryVersion();
     }
 
-    private void muteFirmata() {
+    public void mute() {
         synchronized (sysexLock) {
             sysex(MUTE_FIRMATA, new byte[]{1});
         }
+        isMuted = true;
     }
 
-    private void unMuteFirmata() {
+    public void unMute() {
         synchronized (sysexLock) {
             sysex(MUTE_FIRMATA, new byte[]{0});
+        }
+        isMuted = false;
+    }
+
+    public boolean isMuted() {
+        return isMuted;
+    }
+
+    public boolean isArduinoInACallback() {
+        synchronized (arduinoCallbacksLock) {
+            return isInACallback;
+        }
+    }
+
+    private void onSysex(byte command, byte[] data) {
+
+    }
+
+    private void onLibraryVersionQueryResponse(int version) {
+        for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
+            versionQueryCallback.onLibraryVersionQueryResponse(version);
+        }
+    }
+
+    private void onFirmwareVersionQueryResponse(int majorVersion, int minorVersion) {
+        for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
+            versionQueryCallback.onFirmwareVersionQueryResponse(new FirmwareVersion(majorVersion, minorVersion));
         }
     }
 
     private void setVersion(int majorVersion, int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
-//        for (FirmwareVersionQueryHandler handler : firmwareVersionQueryHandlers) {
-//            handler.onVersionReceived(minorVersion, majorVersion);
-//        }
+        onFirmwareVersionQueryResponse(majorVersion, minorVersion);
+    }
+
+    public FirmwareVersion getFirmwareVersion() {
+        return new FirmwareVersion(majorVersion, minorVersion);
+    }
+
+    public int getLibraryVersion() {
+        return arduinoLibraryVersion;
     }
 
     private void processInput(byte inputData) {
@@ -596,31 +631,25 @@ public class OneSheeldDevice {
                             fixedSysexData[i / 2] = (byte) (sysexData[i] | (sysexData[i + 1] << 7));
                         }
 
-                        if (sysexCommand == UART_DATA && fixedSysexData != null) {
+                        if (sysexCommand == SERIAL_DATA && fixedSysexData != null) {
                             for (byte b : fixedSysexData) {
-                                uartBuffer.add(b);
+                                serialBuffer.add(b);
                             }
                         } else if (sysexCommand == BLUETOOTH_RESET) {
-//                            if (!isBootloader) {
                             byte randomVal = (byte) (Math.random() * 255);
                             byte complement = (byte) (255 - randomVal & 0xFF);
                             synchronized (sysexLock) {
                                 sysex(BLUETOOTH_RESET, new byte[]{0x01, randomVal, complement});
                             }
                             closeConnection();
-//                            }
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
                         } else {
-//                            for (ArduinoFirmataDataHandler dataHandler : dataHandlers) {
-//                                dataHandler.onSysex(sysexCommand, sysexData);
-//                            }
+                            onSysex(sysexCommand, sysexData);
                         }
                     }
                 } else {
-//                    for (ArduinoFirmataDataHandler dataHandler : dataHandlers) {
-//                        dataHandler.onSysex(sysexCommand, new byte[]{});
-//                    }
+                    onSysex(sysexCommand, new byte[]{});
                 }
 
             } else {
@@ -638,13 +667,9 @@ public class OneSheeldDevice {
                         setDigitalInputs(multiByteChannel,
                                 (storedInputData[0] << 7) + storedInputData[1]);
                         break;
-                    case ANALOG_MESSAGE:
-                        setAnalogInput(multiByteChannel, (storedInputData[0] << 7)
-                                + storedInputData[1]);
-                        break;
                     case REPORT_VERSION:
                         setVersion(storedInputData[0], storedInputData[1]);
-                        isVersionQueried = true;
+                        isFirmwareVersionQueried = true;
                         break;
                 }
             }
@@ -661,7 +686,6 @@ public class OneSheeldDevice {
                     sysexBytesRead = 0;
                     break;
                 case DIGITAL_MESSAGE:
-                case ANALOG_MESSAGE:
                 case REPORT_VERSION:
                     waitForData = 2;
                     executeMultiByteCommand = command;
@@ -695,15 +719,16 @@ public class OneSheeldDevice {
             isConnected = this.isConnected;
             this.isConnected = false;
         }
-        arduinoLibraryVersion = -1;
         if (callbacksTimeout != null) callbacksTimeout.stopTimer();
         if (exitingCallbacksThread != null && exitingCallbacksThread.isAlive())
             exitingCallbacksThread.interrupt();
         if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
             enteringCallbacksThread.interrupt();
-        while (queuedFrames != null && !queuedFrames.isEmpty()) queuedFrames.poll();
-        isInACallback = false;
-        if (!isConnected) {
+        if (queuedFrames != null) queuedFrames.clear();
+        synchronized (arduinoCallbacksLock) {
+            isInACallback = false;
+        }
+        if (isConnected) {
             onDisconnect();
         }
     }
@@ -817,23 +842,20 @@ public class OneSheeldDevice {
 
         @Override
         public void run() {
-            // TODO Auto-generated method stub
             byte input;
             while (!this.isInterrupted()) {
-
                 try {
                     input = readByteFromBluetoothBuffer();
                     processInput(input);
                 } catch (InterruptedException e) {
                     return;
                 }
-
             }
         }
     }
 
-    private class UartListeningThread extends Thread {
-        public UartListeningThread() {
+    private class SerialBufferListeningThread extends Thread {
+        public SerialBufferListeningThread() {
             start();
         }
 
@@ -846,68 +868,55 @@ public class OneSheeldDevice {
         public void run() {
             while (!this.isInterrupted()) {
                 try {
-                    while ((readByteFromUartBuffer()) != ShieldFrame.START_OF_FRAME)
+                    while ((readByteFromSerialBuffer()) != ShieldFrame.START_OF_FRAME)
                         ;
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = new TimeOut(1000);
-                    int tempArduinoLibVersion = readByteFromUartBuffer();
-                    byte shieldId = readByteFromUartBuffer();
-//                    boolean found = false;
-//                    for (UIShield shield : UIShield.values()) {
-//                        if (shieldId == shield.getId() || shieldId == CONFIGURATION_SHIELD_ID)
-//                            found = true;
-//                    }
-//                    if (!found) {
-//                        if (ShieldFrameTimeout != null)
-//                            ShieldFrameTimeout.stopTimer();
-//                        uartBuffer.clear();
-//                        continue;
-//                    }
-                    byte instanceId = readByteFromUartBuffer();
-                    byte functionId = readByteFromUartBuffer();
+                    int tempArduinoLibVersion = readByteFromSerialBuffer();
+                    byte shieldId = readByteFromSerialBuffer();
+                    byte instanceId = readByteFromSerialBuffer();
+                    byte functionId = readByteFromSerialBuffer();
                     ShieldFrame frame = new ShieldFrame(shieldId, instanceId,
                             functionId);
-                    int argumentsNumber = readByteFromUartBuffer() & 0xFF;
-                    int argumentsNumberVerification = (255 - (readByteFromUartBuffer() & 0xFF));
+                    int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
+                    int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                     if (argumentsNumber != argumentsNumberVerification) {
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        uartBuffer.clear();
+                        serialBuffer.clear();
                         continue;
                     }
                     for (int i = 0; i < argumentsNumber; i++) {
-                        int length = readByteFromUartBuffer() & 0xFF;
-                        int lengthVerification = (255 - (readByteFromUartBuffer() & 0xFF));
+                        int length = readByteFromSerialBuffer() & 0xFF;
+                        int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                         if (length != lengthVerification || length <= 0) {
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
-                            uartBuffer.clear();
+                            serialBuffer.clear();
                             continue;
                         }
                         byte[] data = new byte[length];
                         for (int j = 0; j < length; j++) {
-                            data[j] = readByteFromUartBuffer();
+                            data[j] = readByteFromSerialBuffer();
                         }
                         frame.addArgument(data);
                     }
-                    if ((readByteFromUartBuffer()) != ShieldFrame.END_OF_FRAME) {
+                    if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        uartBuffer.clear();
+                        serialBuffer.clear();
                         continue;
                     }
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     if (arduinoLibraryVersion != tempArduinoLibVersion) {
                         arduinoLibraryVersion = tempArduinoLibVersion;
-//                        for (ArduinoLibraryVersionChangeHandler handler : arduinoLibraryVersionChangeHandlers) {
-//                            handler.onArduinoLibraryVersionChange(arduinoLibraryVersion);
-//                        }
+                        isLibraryVersionQueried = true;
+                        onLibraryVersionQueryResponse(arduinoLibraryVersion);
                     }
 //                    printFrameToLog(frame.getAllFrameAsBytes(), "Rec");
                     if (shieldId == CONFIGURATION_SHIELD_ID) {
-                        //1Sheeld configration from the library
                         if (functionId == LIBRARY_VERSION_RESPONSE) {
 
                         } else if (functionId == IS_HARDWARE_CONNECTED_QUERY) {
