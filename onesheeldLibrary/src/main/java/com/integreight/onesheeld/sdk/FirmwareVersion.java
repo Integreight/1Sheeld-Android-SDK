@@ -4,7 +4,7 @@ public class FirmwareVersion {
     private int majorVersion;
     private int minorVersion;
 
-    public FirmwareVersion(int majorVersion, int minorVersion) {
+    FirmwareVersion(int majorVersion, int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
     }

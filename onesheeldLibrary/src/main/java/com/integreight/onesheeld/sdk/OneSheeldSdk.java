@@ -2,23 +2,20 @@ package com.integreight.onesheeld.sdk;
 
 import android.content.Context;
 
-/**
- * Created by dell on 6/18/2015.
- */
 public class OneSheeldSdk {
-    private static boolean IS_DEBUGGING_ENABLED = false;
-    private static FirmwareVersion COMPATIBLE_FIRMWARE_VERSION = new FirmwareVersion(1, 3);
-    private static int versionCode = 111111;
-    private static String versionName = "1.0.0";
+    private static boolean isDebuggingEnabled = false;
+    private static final FirmwareVersion COMPATIBLE_FIRMWARE_VERSION = new FirmwareVersion(1, 3);
+    private static final int versionCode = BuildConfig.VERSION_CODE;
+    private static final String versionName = BuildConfig.VERSION_NAME;
     private static Context context;
     private static boolean isInit = false;
 
     public static boolean isDebuggingEnabled() {
-        return IS_DEBUGGING_ENABLED;
+        return isDebuggingEnabled;
     }
 
     public static void setDebugging(boolean value) {
-        IS_DEBUGGING_ENABLED = value;
+        isDebuggingEnabled = value;
     }
 
     public static FirmwareVersion getCompatibleFirmwareVersion() {

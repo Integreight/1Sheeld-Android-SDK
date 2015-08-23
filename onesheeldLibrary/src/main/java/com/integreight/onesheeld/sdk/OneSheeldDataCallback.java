@@ -1,22 +1,19 @@
 package com.integreight.onesheeld.sdk;
 
-/**
- * Created by dell on 6/18/2015.
- */
 public abstract class OneSheeldDataCallback {
-    public void onDigitalPinStatusChange() {
+    public void onDigitalPinStatusChange(int pinNumber, boolean newValue) {
 
     }
 
-    public void onSerialDataReceive() {
+    public void onSerialDataReceive(int data) {
 
     }
 
-    public void onShieldFrameReceive() {
+    public void onShieldFrameReceive(ShieldFrame frame) {
 
     }
 
-    public void onKnownShieldFrameReceive() {
+    public void onKnownShieldFrameReceive(ShieldFrame frame) {
 
     }
 }

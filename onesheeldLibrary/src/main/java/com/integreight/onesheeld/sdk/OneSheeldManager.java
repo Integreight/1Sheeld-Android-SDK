@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,7 +58,7 @@ public class OneSheeldManager {
         isAutomaticConnectingRetriesEnabled = true;
     }
 
-    public static OneSheeldManager getInstance() {
+    static OneSheeldManager getInstance() {
         if (instance == null && OneSheeldSdk.isInit()) {
             synchronized (OneSheeldManager.class) {
                 if (instance == null) {
@@ -99,20 +98,53 @@ public class OneSheeldManager {
     }
 
     public void broadcastSerialData(byte[] data) {
+        broadcastSerialData(data, null);
+    }
+
+    public void broadcastSerialData(byte[] data, OneSheeldDevice exceptionArray[]) {
         for (OneSheeldDevice device : connectedDevices.values()) {
-            device.sendSerialData(data);
+            boolean foundInExceptArray = false;
+            if (exceptionArray != null)
+                for (OneSheeldDevice exceptDevice : exceptionArray)
+                    if (device.getAddress().equals(exceptDevice.getAddress())) {
+                        foundInExceptArray = true;
+                        break;
+                    }
+            if (!foundInExceptArray) device.sendSerialData(data);
         }
     }
 
     public void broadcastShieldFrame(ShieldFrame frame) {
+        broadcastShieldFrame(frame, null);
+    }
+
+    public void broadcastShieldFrame(ShieldFrame frame, OneSheeldDevice exceptionArray[]) {
         for (OneSheeldDevice device : connectedDevices.values()) {
-            device.sendShieldFrame(frame);
+            boolean foundInExceptArray = false;
+            if (exceptionArray != null)
+                for (OneSheeldDevice exceptDevice : exceptionArray)
+                    if (device.getAddress().equals(exceptDevice.getAddress())) {
+                        foundInExceptArray = true;
+                        break;
+                    }
+            if (!foundInExceptArray) device.sendShieldFrame(frame);
         }
     }
 
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
+        broadcastShieldFrame(frame, waitIfInACallback, null);
+    }
+
+    public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback, OneSheeldDevice exceptionArray[]) {
         for (OneSheeldDevice device : connectedDevices.values()) {
-            device.sendShieldFrame(frame, waitIfInACallback);
+            boolean foundInExceptArray = false;
+            if (exceptionArray != null)
+                for (OneSheeldDevice exceptDevice : exceptionArray)
+                    if (device.getAddress().equals(exceptDevice.getAddress())) {
+                        foundInExceptArray = true;
+                        break;
+                    }
+            if (!foundInExceptArray) device.sendShieldFrame(frame, waitIfInACallback);
         }
     }
 
@@ -293,8 +325,7 @@ public class OneSheeldManager {
                 PackageManager.PERMISSION_GRANTED || OneSheeldSdk.getContext().checkCallingOrSelfPermission("android.permission.BLUETOOTH_ADMIN") != PackageManager.PERMISSION_GRANTED)) {
             throw new OneSheeldException("Bluetooth permissions are missing. Have you added them to the manifest?");
         } else if (!BluetoothUtils.doesDeviceHasBluetooth()) {
-            onError(null, OneSheeldError.BLUETOOTH_NOT_SUPPORTED);
-            return true;
+            throw new OneSheeldException("The device doesn't support Bluetooth. Are you sure you ran it on the correct device?");
         } else if (!BluetoothUtils.isBluetoothEnabled()) {
             onError(null, OneSheeldError.BLUETOOTH_NOT_ENABLED);
             return true;
@@ -527,7 +558,6 @@ public class OneSheeldManager {
                     continue;
                 }
             } while (triesCounter > 0 && hasError);
-            // Start the onConnectionStart thread
             if (hasError) onConnectionError(device);
             else {
                 onConnectionStart(device, socket);

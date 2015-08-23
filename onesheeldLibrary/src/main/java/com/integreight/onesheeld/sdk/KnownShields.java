@@ -1,7 +1,5 @@
 package com.integreight.onesheeld.sdk;
 
-import android.support.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -16,7 +14,7 @@ public class KnownShields implements List<KnownShield> {
         knownShields = new ArrayList<>();
     }
 
-    public static KnownShields getInstance() {
+    static KnownShields getInstance() {
         if (instance == null) {
             synchronized (KnownShields.class) {
                 if (instance == null) {
@@ -77,7 +75,6 @@ public class KnownShields implements List<KnownShield> {
         return knownShields.isEmpty();
     }
 
-    @NonNull
     @Override
     public Iterator<KnownShield> iterator() {
         return knownShields.iterator();
@@ -88,13 +85,11 @@ public class KnownShields implements List<KnownShield> {
         return knownShields.lastIndexOf(object);
     }
 
-    @NonNull
     @Override
     public ListIterator<KnownShield> listIterator() {
         return knownShields.listIterator();
     }
 
-    @NonNull
     @Override
     public ListIterator<KnownShield> listIterator(int location) {
         return knownShields.listIterator(location);
@@ -130,19 +125,16 @@ public class KnownShields implements List<KnownShield> {
         return knownShields.size();
     }
 
-    @NonNull
     @Override
     public List<KnownShield> subList(int start, int end) {
         return knownShields.subList(start, end);
     }
 
-    @NonNull
     @Override
     public Object[] toArray() {
         return knownShields.toArray();
     }
 
-    @NonNull
     @Override
     public <T> T[] toArray(T[] array) {
         return knownShields.toArray(array);

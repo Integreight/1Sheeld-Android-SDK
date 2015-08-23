@@ -22,6 +22,12 @@ public class OneSheeldDevice {
     public static final byte PWM = 3;
     public static final boolean LOW = false;
     public static final boolean HIGH = true;
+    public static final int A0 = 14;
+    public static final int A1 = 15;
+    public static final int A2 = 16;
+    public static final int A3 = 17;
+    public static final int A4 = 18;
+    public static final int A5 = 19;
     private final char MAX_DATA_BYTES = 4096;
     private final char MAX_OUTPUT_BYTES = 32;
     private final byte DIGITAL_MESSAGE = (byte) 0x90;
@@ -43,7 +49,7 @@ public class OneSheeldDevice {
     private final byte IS_HARDWARE_CONNECTED_QUERY = (byte) 0x02;
     private final byte IS_CALLBACK_ENTERED = (byte) 0x03;
     private final byte IS_CALLBACK_EXITED = (byte) 0x04;
-    private final Object sysexLock = new Object();
+    private final Object sendingDataLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
     private final Object isConnectedLock = new Object();
     private Queue<ShieldFrame> queuedFrames;
@@ -81,8 +87,8 @@ public class OneSheeldDevice {
     private boolean isLibraryVersionQueried;
     private boolean isInACallback;
     private boolean isMuted;
-    private int[] digitalOutputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    private int[] digitalInputData = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    private int[] digitalOutputData = {0, 0, 0};
+    private int[] digitalInputData = {0, 0, 0};
 
     public OneSheeldDevice(String address) {
         checkBluetoothAddress(address);
@@ -182,7 +188,7 @@ public class OneSheeldDevice {
             versionQueryCallbacks.remove(versionQueryCallback);
     }
 
-    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldErrorCallback errorCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback) {
+    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback) {
         addConnectionCallback(connectionCallback);
         addErrorCallback(errorCallback);
         addDataCallback(dataCallback);
@@ -205,7 +211,7 @@ public class OneSheeldDevice {
         return temp;
     }
 
-    private byte readByteFromBluetoothBuffer() throws InterruptedException {
+    private int readByteFromBluetoothBuffer() throws InterruptedException {
         isBluetoothBufferWaiting = true;
         return bluetoothBuffer.take().byteValue();
     }
@@ -424,43 +430,42 @@ public class OneSheeldDevice {
     }
 
     private void sendFrame(ShieldFrame frame) {
-        if (frame == null)
-            return;
+        if (frame == null) return;
         byte[] frameBytes = frame.getAllFrameAsBytes();
-        int maxShieldFrameBytes = (MAX_OUTPUT_BYTES - 3) / 2;
-        ArrayList<byte[]> subArrays = new ArrayList<>();
-        for (int i = 0; i < frameBytes.length; i += maxShieldFrameBytes) {
-            byte[] subArray = (i + maxShieldFrameBytes > frameBytes.length) ? ArrayUtils
-                    .copyOfRange(frameBytes, i, frameBytes.length) : ArrayUtils
-                    .copyOfRange(frameBytes, i, i + maxShieldFrameBytes);
-            subArrays.add(subArray);
-        }
-        synchronized (sysexLock) {
-            for (byte[] sub : subArrays)
-                sysex(SERIAL_DATA, sub);
-        }
+        sendSerialData(frameBytes);
     }
 
     private void respondToIsAlive() {
-        synchronized (sysexLock) {
+        synchronized (sendingDataLock) {
             sysex(IS_ALIVE, new byte[]{});
         }
     }
 
     public void sendSerialData(byte[] data) {
-        synchronized (sysexLock) {
-            sysex(SERIAL_DATA, data);
+        int maxShieldFrameBytes = (MAX_OUTPUT_BYTES - 3) / 2;
+        ArrayList<byte[]> subArrays = new ArrayList<>();
+        for (int i = 0; i < data.length; i += maxShieldFrameBytes) {
+            byte[] subArray = (i + maxShieldFrameBytes > data.length) ? ArrayUtils
+                    .copyOfRange(data, i, data.length) : ArrayUtils
+                    .copyOfRange(data, i, i + maxShieldFrameBytes);
+            subArrays.add(subArray);
+        }
+        synchronized (sendingDataLock) {
+            for (byte[] sub : subArrays)
+                sysex(SERIAL_DATA, sub);
         }
     }
 
     private void enableReporting() {
-        for (byte i = 0; i < 3; i++) {
-            write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
+        synchronized (sendingDataLock) {
+            for (byte i = 0; i < 3; i++) {
+                write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
+            }
         }
     }
 
     private void reportInputPinsValues() {
-        synchronized (sysexLock) {
+        synchronized (sendingDataLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
     }
@@ -473,15 +478,23 @@ public class OneSheeldDevice {
 
 
     public boolean digitalRead(int pin) {
+        if (pin >= 20 || pin < 0)
+            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
         return ((digitalInputData[pin >> 3] >> (pin & 0x07)) & 0x01) > 0;
     }
 
     public void pinMode(int pin, byte mode) {
+        if (pin >= 20 || pin < 0)
+            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, mode};
-        write(writeData);
+        synchronized (sendingDataLock) {
+            write(writeData);
+        }
     }
 
     public void digitalWrite(int pin, boolean value) {
+        if (pin >= 20 || pin < 0)
+            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte portNumber = (byte) ((pin >> 3) & 0x0F);
         if (!value)
             digitalOutputData[portNumber] &= ~(1 << (pin & 0x07));
@@ -491,21 +504,36 @@ public class OneSheeldDevice {
                 (byte) (DIGITAL_MESSAGE | portNumber),
                 (byte) (digitalOutputData[portNumber] & 0x7F),
                 (byte) (digitalOutputData[portNumber] >> 7)};
-        write(writeData);
+        synchronized (sendingDataLock) {
+            write(writeData);
+        }
     }
 
     public void analogWrite(int pin, int value) {
+        if (pin >= 20 || pin < 0)
+            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, PWM,
                 (byte) (ANALOG_MESSAGE | (pin & 0x0F)), (byte) (value & 0x7F),
                 (byte) (value >> 7)};
-        write(writeData);
+        synchronized (sendingDataLock) {
+            write(writeData);
+        }
     }
 
     private void setDigitalInputs(int portNumber, int portData) {
+        int portDifference = digitalInputData[portNumber] ^ portData;
         digitalInputData[portNumber] = portData;
-//        for (ArduinoFirmataDataHandler dataHandler : dataHandlers) {
-//            dataHandler.onDigital(portNumber, portData);
-//        }
+        ArrayList<Integer> differentPinNumbers = new ArrayList();
+        for (int i = 0; i < 8; i++) {
+            if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
+        }
+
+        for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+            for (int pinNumber : differentPinNumbers) {
+                int actualPinNumber = (portNumber << 3) + pinNumber;
+                oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, digitalRead(actualPinNumber));
+            }
+        }
     }
 
     public void queryFirmwareVersion() {
@@ -559,14 +587,14 @@ public class OneSheeldDevice {
     }
 
     public void mute() {
-        synchronized (sysexLock) {
+        synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{1});
         }
         isMuted = true;
     }
 
     public void unMute() {
-        synchronized (sysexLock) {
+        synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{0});
         }
         isMuted = false;
@@ -638,7 +666,7 @@ public class OneSheeldDevice {
                         } else if (sysexCommand == BLUETOOTH_RESET) {
                             byte randomVal = (byte) (Math.random() * 255);
                             byte complement = (byte) (255 - randomVal & 0xFF);
-                            synchronized (sysexLock) {
+                            synchronized (sendingDataLock) {
                                 sysex(BLUETOOTH_RESET, new byte[]{0x01, randomVal, complement});
                             }
                             closeConnection();
@@ -842,11 +870,14 @@ public class OneSheeldDevice {
 
         @Override
         public void run() {
-            byte input;
+            int input;
             while (!this.isInterrupted()) {
                 try {
                     input = readByteFromBluetoothBuffer();
-                    processInput(input);
+                    processInput((byte) input);
+                    for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+                        oneSheeldDataCallback.onSerialDataReceive(input);
+                    }
                 } catch (InterruptedException e) {
                     return;
                 }
@@ -927,9 +958,9 @@ public class OneSheeldDevice {
                             callbackExited();
                         }
                     } else {
-//                        for (ArduinoFirmataShieldFrameHandler frameHandler : frameHandlers) {
-//                            frameHandler.onNewShieldFrameReceived(frame);
-//                        }
+                        for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+                            oneSheeldDataCallback.onShieldFrameReceive(frame);
+                        }
                     }
                 } catch (InterruptedException e) {
                     return;

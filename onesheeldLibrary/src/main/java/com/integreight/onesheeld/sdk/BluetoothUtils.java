@@ -8,26 +8,23 @@ import android.os.Build;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
-/**
- * Created by dell on 6/21/2015.
- */
-public class BluetoothUtils {
+abstract class BluetoothUtils {
     private static final UUID BLUETOOTH_SPP_PROFILE = UUID
             .fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    public static boolean isBluetoothEnabled() {
+    static boolean isBluetoothEnabled() {
         return doesDeviceHasBluetooth() && getBluetoothAdapter().isEnabled();
     }
 
-    public static boolean doesDeviceHasBluetooth() {
+    static boolean doesDeviceHasBluetooth() {
         return getBluetoothAdapter() != null;
     }
 
-    public static BluetoothAdapter getBluetoothAdapter() {
+    static BluetoothAdapter getBluetoothAdapter() {
         return BluetoothAdapter.getDefaultAdapter();
     }
 
-    public static synchronized BluetoothSocket getRfcommSocket(BluetoothDevice device, int numberOfRetries) {
+    static synchronized BluetoothSocket getRfcommSocket(BluetoothDevice device, int numberOfRetries) {
         BluetoothSocket socket = null;
         numberOfRetries = numberOfRetries % 3;
         switch (numberOfRetries) {
@@ -60,7 +57,7 @@ public class BluetoothUtils {
         return socket;
     }
 
-    public static synchronized BluetoothSocket getRfcommSocket(BluetoothDevice device) {
+    static synchronized BluetoothSocket getRfcommSocket(BluetoothDevice device) {
         return getRfcommSocket(device, 0);
     }
 

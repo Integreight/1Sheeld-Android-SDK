@@ -1,6 +1,6 @@
 package com.integreight.onesheeld.sdk;
 
-public class ArrayUtils {
+abstract class ArrayUtils {
     private ArrayUtils() {
 
     }

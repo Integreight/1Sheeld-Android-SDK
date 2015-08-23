@@ -7,6 +7,7 @@ public class TimeOut extends Thread {
     long totalMilliSeconds;
     long milliStep;
     TimeOutCallback callback;
+
     public TimeOut(long milliSeconds, long milliStep, TimeOutCallback callback) {
         isTimeout = false;
         this.totalMilliSeconds = milliSeconds;
@@ -38,7 +39,6 @@ public class TimeOut extends Thread {
 
     @Override
     public synchronized void start() {
-        // TODO Auto-generated method stub
         resetTimer();
         super.start();
     }
@@ -47,7 +47,6 @@ public class TimeOut extends Thread {
     public void run() {
         try {
             do {
-
                 Thread.sleep(milliStep);
                 if (callback != null && milliSecondsLeft != 0) callback.onTick(milliSecondsLeft);
                 milliSecondsLeft -= milliStep;
