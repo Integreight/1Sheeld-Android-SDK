@@ -3,10 +3,11 @@ package com.integreight.onesheeld.sdk;
 import android.content.Context;
 
 public class OneSheeldSdk {
-    private static boolean isDebuggingEnabled = false;
+    public static final String TAG = "OneSheeldSdk";
     private static final FirmwareVersion COMPATIBLE_FIRMWARE_VERSION = new FirmwareVersion(1, 3);
     private static final int versionCode = BuildConfig.VERSION_CODE;
     private static final String versionName = BuildConfig.VERSION_NAME;
+    private static boolean isDebuggingEnabled = false;
     private static Context context;
     private static boolean isInit = false;
 
@@ -16,6 +17,7 @@ public class OneSheeldSdk {
 
     public static void setDebugging(boolean value) {
         isDebuggingEnabled = value;
+        if (value) Log.d("Debugging logs enabled.");
     }
 
     public static FirmwareVersion getCompatibleFirmwareVersion() {
@@ -33,6 +35,7 @@ public class OneSheeldSdk {
     public static void init(Context context) {
         OneSheeldSdk.context = context;
         isInit = true;
+        Log.d("OneSheeld SDK initialized.");
     }
 
     public static Context getContext() {

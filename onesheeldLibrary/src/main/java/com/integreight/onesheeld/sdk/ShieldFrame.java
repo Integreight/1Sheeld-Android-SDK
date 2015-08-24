@@ -142,19 +142,7 @@ public class ShieldFrame {
 
     @Override
     public String toString() {
-        String s = "";
-        for (byte b : getAllFrameAsBytes()) {
-            if ((Integer.toHexString(b).length() < 2))
-                s += "0" + Integer.toHexString(b) + " ";
-            else if ((Integer.toHexString(b).length() == 2))
-                s += Integer.toHexString(b) + " ";
-            else {
-                String temp = Integer.toHexString(b);
-                temp = temp.substring(temp.length() - 2);
-                s += temp + " ";
-            }
-        }
-        return s;
+        return ArrayUtils.toHexString(getAllFrameAsBytes());
     }
 
     public byte[] getAllFrameAsBytes() {

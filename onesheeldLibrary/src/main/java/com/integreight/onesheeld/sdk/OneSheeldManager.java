@@ -8,6 +8,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+
+import com.integreight.onesheeld.sdk.exceptions.BluetoothNotSupportedException;
+import com.integreight.onesheeld.sdk.exceptions.MissingBluetoothPermmissionsException;
+import com.integreight.onesheeld.sdk.exceptions.NullOneSheeldDeviceException;
+import com.integreight.onesheeld.sdk.exceptions.SdkNotInitializedException;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +61,8 @@ public class OneSheeldManager {
         scanningTimeOutValue = 20;
         currentState = ConnectionState.READY;
         bluetoothAdapter = BluetoothUtils.getBluetoothAdapter();
-        isAutomaticConnectingRetriesEnabled = true;
+        isAutomaticConnectingRetriesEnabled = false;
+        Log.d("Manager: OneSheeld Manager initialized.");
     }
 
     static OneSheeldManager getInstance() {
@@ -70,9 +77,10 @@ public class OneSheeldManager {
     }
 
     public void scan() {
+        Log.d("Manager: Bluetooth scanning requested.");
         if (!handleBluetoothErrors()) {
             startScanning();
-        }
+        } else Log.d("Manager: Unable to initiate Bluetooth scanning, an error occurred.");
     }
 
     public int getRetryCount() {
@@ -102,6 +110,7 @@ public class OneSheeldManager {
     }
 
     public void broadcastSerialData(byte[] data, OneSheeldDevice exceptionArray[]) {
+        Log.d("Manager: Broadcasting serial data to all connected devices.");
         for (OneSheeldDevice device : connectedDevices.values()) {
             boolean foundInExceptArray = false;
             if (exceptionArray != null)
@@ -110,7 +119,7 @@ public class OneSheeldManager {
                         foundInExceptArray = true;
                         break;
                     }
-            if (!foundInExceptArray) device.sendSerialData(data);
+            if (!foundInExceptArray) device.sendData(data);
         }
     }
 
@@ -119,16 +128,7 @@ public class OneSheeldManager {
     }
 
     public void broadcastShieldFrame(ShieldFrame frame, OneSheeldDevice exceptionArray[]) {
-        for (OneSheeldDevice device : connectedDevices.values()) {
-            boolean foundInExceptArray = false;
-            if (exceptionArray != null)
-                for (OneSheeldDevice exceptDevice : exceptionArray)
-                    if (device.getAddress().equals(exceptDevice.getAddress())) {
-                        foundInExceptArray = true;
-                        break;
-                    }
-            if (!foundInExceptArray) device.sendShieldFrame(frame);
-        }
+        broadcastShieldFrame(frame,false,exceptionArray);
     }
 
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
@@ -136,6 +136,7 @@ public class OneSheeldManager {
     }
 
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback, OneSheeldDevice exceptionArray[]) {
+        Log.d("Manager: Broadcasting frame to all connected devices.");
         for (OneSheeldDevice device : connectedDevices.values()) {
             boolean foundInExceptArray = false;
             if (exceptionArray != null)
@@ -179,12 +180,14 @@ public class OneSheeldManager {
     }
 
     public void disconnectAll() {
+        Log.d("Manager: Disconnect all connected devices.");
         for (OneSheeldDevice device : connectedDevices.values()) {
-            device.disconnect();
+            disconnect(device);
         }
     }
 
     public void disconnect(OneSheeldDevice device) {
+        Log.d("Manager: Delegate the disconnection from "+device.getName()+" to the device.");
         device.disconnect();
     }
 
@@ -222,6 +225,7 @@ public class OneSheeldManager {
             }
         }
         if (isConnecting) {
+            Log.d("Manager: Stopping pending connection.");
             stopConnectThread();
         }
     }
@@ -238,8 +242,10 @@ public class OneSheeldManager {
             if (!device.isConnected() && !connectedDevices.containsKey(device.getAddress())) {
                 finishScanning();
                 stopScanningTimeOut();
+                Log.d("Manager: Starting connection sequence to " + device.getName() + ".");
                 startConnectThread(device);
             } else {
+                Log.d("Manager: Connection to "+device.getName()+" failed, already connected to that device.");
                 onError(device, OneSheeldError.ALREADY_CONNECTED_TO_THAT_DEVICE);
                 device.onError(OneSheeldError.ALREADY_CONNECTED_TO_THAT_DEVICE);
             }
@@ -272,11 +278,12 @@ public class OneSheeldManager {
 
     public void connect(OneSheeldDevice device) {
         if (device != null) {
+            Log.d("Manager: Connection request to "+device.getName()+" received.");
             if (!handleBluetoothErrors()) {
                 startConnection(device);
-            }
+            } else Log.d("Unable to initiate connection to "+device.getName()+", an error occurred.");
         } else
-            throw new OneSheeldException("OneSheeldDevice is null, have you checked its validity?");
+            throw new NullOneSheeldDeviceException("OneSheeldDevice is null, have you checked its validity?");
     }
 
     private synchronized void onConnectionError(OneSheeldDevice device) {
@@ -308,6 +315,7 @@ public class OneSheeldManager {
     }
 
     private synchronized void onConnectionStart(OneSheeldDevice device, BluetoothSocket socket) {
+        Log.d("Manager: Delegate the connection management of "+device.getName()+" to the device.");
         device.connectUsing(socket);
         synchronized (currentStateLock) {
             currentState = ConnectionState.READY;
@@ -320,12 +328,12 @@ public class OneSheeldManager {
             state = currentState;
         }
         if (!OneSheeldSdk.isInit()) {
-            throw new OneSheeldException("1Sheeld SDK not initialized. Have you called OneSheeldSdk.init()?");
+            throw new SdkNotInitializedException("1Sheeld SDK not initialized. Have you called OneSheeldSdk.init()?");
         } else if (OneSheeldSdk.getContext() != null && (OneSheeldSdk.getContext().checkCallingOrSelfPermission("android.permission.BLUETOOTH") !=
                 PackageManager.PERMISSION_GRANTED || OneSheeldSdk.getContext().checkCallingOrSelfPermission("android.permission.BLUETOOTH_ADMIN") != PackageManager.PERMISSION_GRANTED)) {
-            throw new OneSheeldException("Bluetooth permissions are missing. Have you added them to the manifest?");
+            throw new MissingBluetoothPermmissionsException("Bluetooth permissions are missing. Have you added them to the manifest?");
         } else if (!BluetoothUtils.doesDeviceHasBluetooth()) {
-            throw new OneSheeldException("The device doesn't support Bluetooth. Are you sure you ran it on the correct device?");
+            throw new BluetoothNotSupportedException("The device doesn't support Bluetooth. Are you sure you ran it on the correct device?");
         } else if (!BluetoothUtils.isBluetoothEnabled()) {
             onError(null, OneSheeldError.BLUETOOTH_NOT_ENABLED);
             return true;
@@ -398,6 +406,7 @@ public class OneSheeldManager {
                 if (bluetoothAdapter.isDiscovering()) bluetoothAdapter.cancelDiscovery();
                 bluetoothAdapter.startDiscovery();
             }
+            Log.d("Manager: Bluetooth scanning started.");
             for (OneSheeldScanningCallback scanningCallback : scanningCallbacks) {
                 if (scanningCallback != null)
                     scanningCallback.onStartScan();
@@ -425,11 +434,12 @@ public class OneSheeldManager {
                     d.setName(d.getAddress());
                     foundOneSheeldDevices.put(d.getAddress(), d);
                     for (OneSheeldScanningCallback scanningCallback : scanningCallbacks) {
-                        if (scanningCallback != null)
-                            scanningCallback.onDeviceFind(d);
+                        Log.d("Manager: Found new device: " + d.getName()+".");
+                        scanningCallback.onDeviceFind(d);
                     }
                 }
             }
+            Log.d("Manager: Bluetooth scanning finished, " + foundOneSheeldDevices.values().size() + " device(s) found.");
             for (OneSheeldScanningCallback scanningCallback : scanningCallbacks) {
                 if (scanningCallback != null)
                     scanningCallback.onFinishScan(new ArrayList<>(foundOneSheeldDevices.values()));
@@ -443,7 +453,7 @@ public class OneSheeldManager {
         if (OneSheeldSdk.getContext() != null) {
             try {
                 OneSheeldSdk.getContext().unregisterReceiver(bluetoothBroadcastReceiver);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException ignored) {
             }
             IntentFilter filter = new IntentFilter();
             filter.addAction(BluetoothDevice.ACTION_FOUND);
@@ -456,7 +466,7 @@ public class OneSheeldManager {
         if (OneSheeldSdk.getContext() != null) {
             try {
                 OneSheeldSdk.getContext().unregisterReceiver(bluetoothBroadcastReceiver);
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
     }
@@ -480,8 +490,8 @@ public class OneSheeldManager {
                 if (!foundOneSheeldDevices.containsKey(tempOneSheeldDevice.getAddress())) {
                     foundOneSheeldDevices.put(tempOneSheeldDevice.getAddress(), tempOneSheeldDevice);
                     for (OneSheeldScanningCallback scanningCallback : scanningCallbacks) {
-                        if (scanningCallback != null)
-                            scanningCallback.onDeviceFind(tempOneSheeldDevice);
+                        Log.d("Manager: Found new device: " + tempOneSheeldDevice.getName()+".");
+                        scanningCallback.onDeviceFind(tempOneSheeldDevice);
                     }
                 } else {
                     foundOneSheeldDevices.get(tempOneSheeldDevice.getAddress()).setPaired(tempOneSheeldDevice.isPaired());
@@ -508,10 +518,11 @@ public class OneSheeldManager {
 
         public ConnectThread(OneSheeldDevice device) {
             this.device = device;
-            setName("OneSheeldConnectThread: " + device.getAddress());
+            setName("OneSheeldConnectThread: " + device.getName());
         }
 
         public void run() {
+            if(this.device==null)return;
             if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering())
                 bluetoothAdapter.cancelDiscovery();
             boolean isDefaultConnectingRetriesEnabled = OneSheeldManager.this.isAutomaticConnectingRetriesEnabled;
@@ -523,6 +534,7 @@ public class OneSheeldManager {
                 if (hasError) {
                     hasError = false;
                     if (triesCounter % 3 == 0 | !isDefaultConnectingRetriesEnabled) {
+                        Log.d("Manager: Connection attempt to "+ device.getName()+" failed, retrying again in 1.5 seconds. #" + (totalTries - (isDefaultConnectingRetriesEnabled ? (triesCounter / 3) : triesCounter)));
                         onConnectionRetry(device, totalTries - (isDefaultConnectingRetriesEnabled ? (triesCounter / 3) : triesCounter));
                         try {
                             Thread.sleep(1500);
@@ -539,6 +551,7 @@ public class OneSheeldManager {
                     }
                     if (socket != null) {
                         Thread.sleep(500);
+                        Log.d("Manager: Trying to connect to " + device.getName()+".");
                         socket.connect();
                     } else {
                         triesCounter--;
@@ -558,8 +571,11 @@ public class OneSheeldManager {
                     continue;
                 }
             } while (triesCounter > 0 && hasError);
-            if (hasError) onConnectionError(device);
-            else {
+            if (hasError) {
+                Log.d("Manager: All connection attempts to " + device.getName() + " failed. Aborting.");
+                onConnectionError(device);
+            } else {
+                Log.d("Manager: Connection to " + device.getName() + "succeeded.");
                 onConnectionStart(device, socket);
             }
         }

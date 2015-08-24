@@ -1,4 +1,4 @@
-package com.integreight.onesheeld.sdk;
+package com.integreight.onesheeld.sdk.exceptions;
 
 public class OneSheeldException extends RuntimeException {
 

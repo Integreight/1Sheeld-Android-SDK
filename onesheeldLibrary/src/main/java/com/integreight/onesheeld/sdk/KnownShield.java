@@ -26,5 +26,15 @@ public class KnownShield {
         return Collections.unmodifiableList(knownFunctions);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o != null && o instanceof KnownShield)
+            return this.getId() == ((KnownShield) o).getId();
+        else return false;
+    }
 
+    @Override
+    public int hashCode() {
+        return super.hashCode() * getId();
+    }
 }

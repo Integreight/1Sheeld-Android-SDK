@@ -13,7 +13,7 @@ public abstract class OneSheeldDataCallback {
 
     }
 
-    public void onKnownShieldFrameReceive(ShieldFrame frame) {
+    public void onKnownShieldFrameReceive(KnownShield shields, ShieldFrame frame) {
 
     }
 }

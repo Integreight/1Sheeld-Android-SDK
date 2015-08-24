@@ -7,6 +7,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
+import com.integreight.onesheeld.sdk.exceptions.IncorrectPinException;
+import com.integreight.onesheeld.sdk.exceptions.InvalidBluetoothAddressException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -92,9 +95,9 @@ public class OneSheeldDevice {
 
     public OneSheeldDevice(String address) {
         checkBluetoothAddress(address);
-        name = null;
+        this.name = address;
         this.address = address;
-        isPaired = false;
+        this.isPaired = false;
         initialize();
     }
 
@@ -137,6 +140,7 @@ public class OneSheeldDevice {
         executeMultiByteCommand = 0;
         multiByteChannel = 0;
         storedInputData = new byte[MAX_DATA_BYTES];
+        Log.d("Device " + this.name + ": Device initialized.");
     }
 
     private void stopBuffersThreads() {
@@ -205,7 +209,7 @@ public class OneSheeldDevice {
         if (ShieldFrameTimeout != null && ShieldFrameTimeout.isTimeout())
             throw new ShieldFrameNotComplete();
         isSerialBufferWaiting = true;
-        byte temp = serialBuffer.take().byteValue();
+        byte temp = serialBuffer.take();
         if (ShieldFrameTimeout != null)
             ShieldFrameTimeout.resetTimer();
         return temp;
@@ -213,12 +217,12 @@ public class OneSheeldDevice {
 
     private int readByteFromBluetoothBuffer() throws InterruptedException {
         isBluetoothBufferWaiting = true;
-        return bluetoothBuffer.take().byteValue();
+        return bluetoothBuffer.take();
     }
 
     private void checkBluetoothAddress(String address) {
-        if (address == null || (address != null && !BluetoothAdapter.checkBluetoothAddress(address))) {
-            throw new OneSheeldException("Bluetooth address is invalid, are you sure you specified it correctly?");
+        if (address == null || !BluetoothAdapter.checkBluetoothAddress(address)) {
+            throw new InvalidBluetoothAddressException("Bluetooth address is invalid, are you sure you specified it correctly?");
         }
     }
 
@@ -257,7 +261,7 @@ public class OneSheeldDevice {
     }
 
     private void onConnect() {
-        manager.onConnect(OneSheeldDevice.this);
+        manager.onConnect(this);
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
             if (connectionCallback != null)
                 connectionCallback.onConnect(this);
@@ -326,6 +330,7 @@ public class OneSheeldDevice {
     }
 
     private void notifyHardwareOfConnection() {
+        Log.d("Device " + this.name + ": Notifying the board with connection.");
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED));
     }
 
@@ -346,7 +351,7 @@ public class OneSheeldDevice {
                 synchronized (arduinoCallbacksLock) {
                     isInACallback = true;
                 }
-                if (callbacksTimeout == null || (callbacksTimeout != null && !callbacksTimeout.isAlive())) {
+                if (callbacksTimeout == null || !callbacksTimeout.isAlive()) {
                     callbacksTimeout = new TimeOut(5000, 1000, new TimeOut.TimeOutCallback() {
                         @Override
                         public void onTimeOut() {
@@ -385,11 +390,10 @@ public class OneSheeldDevice {
                             sent = true;
                         }
                     }
-                    if (sent)
-                        try {
-                            Thread.sleep(200);
-                        } catch (InterruptedException e) {
-                        }
+                    if (sent) try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException ignored) {
+                    }
                 }
             }
         });
@@ -432,7 +436,8 @@ public class OneSheeldDevice {
     private void sendFrame(ShieldFrame frame) {
         if (frame == null) return;
         byte[] frameBytes = frame.getAllFrameAsBytes();
-        sendSerialData(frameBytes);
+        sendData(frameBytes);
+        Log.d("Device " + this.name + ": Frame sent, values: " + frame+".");
     }
 
     private void respondToIsAlive() {
@@ -442,6 +447,11 @@ public class OneSheeldDevice {
     }
 
     public void sendSerialData(byte[] data) {
+        sendData(data);
+        Log.d("Device " + this.name + ": Serial data sent, values: " + ArrayUtils.toHexString(data)+".");
+    }
+
+    void sendData(byte[] data) {
         int maxShieldFrameBytes = (MAX_OUTPUT_BYTES - 3) / 2;
         ArrayList<byte[]> subArrays = new ArrayList<>();
         for (int i = 0; i < data.length; i += maxShieldFrameBytes) {
@@ -457,6 +467,7 @@ public class OneSheeldDevice {
     }
 
     private void enableReporting() {
+        Log.d("Device " + this.name + ": Enable digital pins reporting.");
         synchronized (sendingDataLock) {
             for (byte i = 0; i < 3; i++) {
                 write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
@@ -464,13 +475,15 @@ public class OneSheeldDevice {
         }
     }
 
-    private void reportInputPinsValues() {
+    private void queryInputPinsValues() {
+        Log.d("Device " + this.name + ": Query the current status of the pins.");
         synchronized (sendingDataLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
     }
 
     private void setAllPinsAsInput() {
+        Log.d("Device " + this.name + ": Set all digital pins as input.");
         for (int i = 0; i < 20; i++) {
             pinMode(i, INPUT);
         }
@@ -478,14 +491,16 @@ public class OneSheeldDevice {
 
 
     public boolean digitalRead(int pin) {
+        Log.d("Device " + this.name + ": Digital read from pin " + pin + ".");
         if (pin >= 20 || pin < 0)
-            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
+            throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         return ((digitalInputData[pin >> 3] >> (pin & 0x07)) & 0x01) > 0;
     }
 
     public void pinMode(int pin, byte mode) {
+        Log.d("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
         if (pin >= 20 || pin < 0)
-            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
+            throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, mode};
         synchronized (sendingDataLock) {
             write(writeData);
@@ -493,8 +508,9 @@ public class OneSheeldDevice {
     }
 
     public void digitalWrite(int pin, boolean value) {
+        Log.d("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
-            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
+            throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte portNumber = (byte) ((pin >> 3) & 0x0F);
         if (!value)
             digitalOutputData[portNumber] &= ~(1 << (pin & 0x07));
@@ -510,8 +526,9 @@ public class OneSheeldDevice {
     }
 
     public void analogWrite(int pin, int value) {
+        Log.d("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
-            throw new OneSheeldException("The specified pin number is incorrect, are you sure you specified it correctly?");
+            throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, PWM,
                 (byte) (ANALOG_MESSAGE | (pin & 0x0F)), (byte) (value & 0x7F),
                 (byte) (value >> 7)};
@@ -528,20 +545,23 @@ public class OneSheeldDevice {
             if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
         }
 
-        for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-            for (int pinNumber : differentPinNumbers) {
-                int actualPinNumber = (portNumber << 3) + pinNumber;
+        for (int pinNumber : differentPinNumbers) {
+            int actualPinNumber = (portNumber << 3) + pinNumber;
+            Log.d("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (digitalRead(actualPinNumber) ? "High" : "Low") + ".");
+            for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
                 oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, digitalRead(actualPinNumber));
             }
         }
     }
 
     public void queryFirmwareVersion() {
+        Log.d("Device " + this.name + ": Query firmware version.");
         isFirmwareVersionQueried = false;
         write(REPORT_VERSION);
     }
 
     public void queryLibraryVersion() {
+        Log.d("Device " + this.name + ": Query library version.");
         isLibraryVersionQueried = false;
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION));
     }
@@ -565,7 +585,7 @@ public class OneSheeldDevice {
             connectedThread.write(new byte[]{writeData});
     }
 
-    private void initFirmata() {
+    private void initFirmware() {
         isBluetoothBufferWaiting = false;
         isSerialBufferWaiting = false;
         isMuted = false;
@@ -579,7 +599,7 @@ public class OneSheeldDevice {
         while (!isSerialBufferWaiting) ;
         enableReporting();
         setAllPinsAsInput();
-        reportInputPinsValues();
+        queryInputPinsValues();
         respondToIsAlive();
         queryFirmwareVersion();
         notifyHardwareOfConnection();
@@ -590,6 +610,7 @@ public class OneSheeldDevice {
         synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{1});
         }
+        Log.d("Device " + this.name + ": Communications muted.");
         isMuted = true;
     }
 
@@ -597,6 +618,7 @@ public class OneSheeldDevice {
         synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{0});
         }
+        Log.d("Device " + this.name + ": Communications unmuted.");
         isMuted = false;
     }
 
@@ -629,6 +651,7 @@ public class OneSheeldDevice {
     private void setVersion(int majorVersion, int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
+        Log.d("Device " + this.name + ": Device replied with firmware version, major: " + majorVersion + ", minor:" + minorVersion+".");
         onFirmwareVersionQueryResponse(majorVersion, minorVersion);
     }
 
@@ -659,7 +682,7 @@ public class OneSheeldDevice {
                             fixedSysexData[i / 2] = (byte) (sysexData[i] | (sysexData[i + 1] << 7));
                         }
 
-                        if (sysexCommand == SERIAL_DATA && fixedSysexData != null) {
+                        if (sysexCommand == SERIAL_DATA) {
                             for (byte b : fixedSysexData) {
                                 serialBuffer.add(b);
                             }
@@ -669,6 +692,7 @@ public class OneSheeldDevice {
                             synchronized (sendingDataLock) {
                                 sysex(BLUETOOTH_RESET, new byte[]{0x01, randomVal, complement});
                             }
+                            Log.d("Device " + this.name + ": Device requested Bluetooth reset.");
                             closeConnection();
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
@@ -723,10 +747,12 @@ public class OneSheeldDevice {
     }
 
     public void disconnect() {
+        Log.d("Device " + this.name + ": Disconnection request received.");
         closeConnection();
     }
 
     public void connect() {
+        Log.d("Device " + this.name + ": Delegate the connection request to the manager.");
         manager.connect(this);
     }
 
@@ -757,6 +783,7 @@ public class OneSheeldDevice {
             isInACallback = false;
         }
         if (isConnected) {
+            Log.d("Device " + this.name + ": Device disconnected.");
             onDisconnect();
         }
     }
@@ -785,6 +812,7 @@ public class OneSheeldDevice {
 
         public void run() {
             if (mmSocket == null) return;
+            Log.d("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
             LooperThread = new Thread(new Runnable() {
 
                 @Override
@@ -800,11 +828,12 @@ public class OneSheeldDevice {
             synchronized (isConnectedLock) {
                 isConnected = true;
             }
-            initFirmata();
-            onConnect();
             byte[] buffer = new byte[1024];
             int bufferLength;
-
+            Log.d("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
+            initFirmware();
+            Log.d("Device " + OneSheeldDevice.this.name + ": Device ready for communications.");
+            onConnect();
             while (!this.isInterrupted()) {
                 try {
                     bufferLength = mmInStream.read(buffer, 0, buffer.length);
@@ -843,7 +872,7 @@ public class OneSheeldDevice {
             if (mmInStream != null)
                 try {
                     mmInStream.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             if (mmOutStream != null)
                 try {
@@ -853,7 +882,7 @@ public class OneSheeldDevice {
             if (mmSocket != null)
                 try {
                     mmSocket.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
         }
     }
@@ -913,6 +942,7 @@ public class OneSheeldDevice {
                     int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
                     int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                     if (argumentsNumber != argumentsNumberVerification) {
+                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
                         serialBuffer.clear();
@@ -922,6 +952,7 @@ public class OneSheeldDevice {
                         int length = readByteFromSerialBuffer() & 0xFF;
                         int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                         if (length != lengthVerification || length <= 0) {
+                            Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
                             serialBuffer.clear();
@@ -934,6 +965,7 @@ public class OneSheeldDevice {
                         frame.addArgument(data);
                     }
                     if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
+                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
                         serialBuffer.clear();
@@ -944,12 +976,12 @@ public class OneSheeldDevice {
                     if (arduinoLibraryVersion != tempArduinoLibVersion) {
                         arduinoLibraryVersion = tempArduinoLibVersion;
                         isLibraryVersionQueried = true;
+                        Log.d("Device " + OneSheeldDevice.this.name + ": Device replied with library version: " + arduinoLibraryVersion + ".");
                         onLibraryVersionQueryResponse(arduinoLibraryVersion);
                     }
-//                    printFrameToLog(frame.getAllFrameAsBytes(), "Rec");
+                    Log.d("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame+".");
                     if (shieldId == CONFIGURATION_SHIELD_ID) {
                         if (functionId == LIBRARY_VERSION_RESPONSE) {
-
                         } else if (functionId == IS_HARDWARE_CONNECTED_QUERY) {
                             notifyHardwareOfConnection();
                         } else if (functionId == IS_CALLBACK_ENTERED) {
@@ -960,11 +992,15 @@ public class OneSheeldDevice {
                     } else {
                         for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
                             oneSheeldDataCallback.onShieldFrameReceive(frame);
+                            if (OneSheeldSdk.getKnownShields().contains(shieldId) &&
+                                    OneSheeldSdk.getKnownShields().getKnownShield(shieldId).getKnownFunctions().contains(KnownFunction.getFunctionWithId(functionId)))
+                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
                         }
                     }
                 } catch (InterruptedException e) {
                     return;
                 } catch (ShieldFrameNotComplete e) {
+                    Log.d("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = null;
