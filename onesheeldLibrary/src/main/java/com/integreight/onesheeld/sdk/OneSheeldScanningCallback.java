@@ -3,7 +3,7 @@ package com.integreight.onesheeld.sdk;
 import java.util.List;
 
 public abstract class OneSheeldScanningCallback {
-    public void onStartScan() {
+    public void onScanStart() {
 
     }
 
@@ -11,7 +11,7 @@ public abstract class OneSheeldScanningCallback {
 
     }
 
-    public void onFinishScan(List<OneSheeldDevice> foundDevices) {
+    public void onScanFinish(List<OneSheeldDevice> foundDevices) {
 
     }
 }

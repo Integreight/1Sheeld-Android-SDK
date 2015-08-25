@@ -8,51 +8,51 @@ import java.util.ListIterator;
 
 public class KnownShields implements List<KnownShield> {
     private static KnownShields instance = null;
-    public KnownShield KEYPAD_SHIELD = new KnownShield((byte) 0x00, "Keypad Shield", new ArrayList<KnownFunction>() {{
-        add(new KnownFunction((byte) 0x00, "", new ArrayList<KnownArgument>() {{
+    public final KnownShield KEYPAD_SHIELD = new KnownShield((byte) 0x75, "Keypad Shield", new ArrayList<KnownFunction>() {{
+        add(new KnownFunction((byte) 0x75, "", new ArrayList<KnownArgument>() {{
             add(new KnownArgument("", ArgumentType.BYTE, 10, true));
         }}, true, true));
     }});
-    public KnownShield GPS_SHIELD;
-    public KnownShield SLIDER_SHIELD;
-    public KnownShield PUSH_BUTTON_SHIELD;
-    public KnownShield TOGGLE_BUTTON_SHIELD;
-    public KnownShield GAMEPAD_SHIELD;
-    public KnownShield PROXIMITY_SENSOR_SHIELD;
-    public KnownShield MIC_SHIELD;
-    public KnownShield TEMPERATURE_SENSOR_SHIELD;
-    public KnownShield LIGHT_SENSOR_SHIELD;
-    public KnownShield PRESSURE_SENSOR_SHIELD;
-    public KnownShield GRAVITY_SENSOR_SHIELD;
-    public KnownShield ACCELEROMETER_SENSOR_SHIELD;
-    public KnownShield GYROSCOPE_SENSOR_SHIELD;
-    public KnownShield ORIENTATION_SENSOR_SHIELD;
-    public KnownShield MAGNETOMETER_SENSOR_SHIELD;
-    public KnownShield PHONE_SHIELD;
-    public KnownShield SMS_SHIELD;
-    public KnownShield CLOCK_SHIELD;
-    public KnownShield KEYBOARD_SHIELD;
-    public KnownShield TWITTER_SHIELD;
-    public KnownShield VOICE_RECOGNIZER_SHIELD;
-    public KnownShield TERMINAL_SHIELD;
-    public KnownShield FACEBOOK_SHIELD;
-    public KnownShield NOTIFICATION_SHIELD;
-    public KnownShield SEVEN_SEGMENT_SHIELD;
-    public KnownShield SKYPE_SHIELD;
-    public KnownShield MUSIC_PLAYER_SHIELD;
-    public KnownShield EMAIL_SHIELD;
-    public KnownShield FOURSQUARE_SHIELD;
-    public KnownShield CAMERA_SHIELD;
-    public KnownShield BUZZER_SHIELD;
-    public KnownShield LED_SHIELD;
-    public KnownShield LCD_SHIELD;
-    public KnownShield TEXT_TO_SPEECH_SHIELD;
-    public KnownShield DATA_LOGGER_SHIELD;
-    public KnownShield PATTERN_SHIELD;
-    public KnownShield INTERNET_SHIELD;
-    public KnownShield COLOR_DETECTOR_SHIELD;
-    public KnownShield NFC_SHIELD;
-    public KnownShield GLCD_SHIELD;
+    public final KnownShield GPS_SHIELD = null;
+    public final KnownShield SLIDER_SHIELD = null;
+    public final KnownShield PUSH_BUTTON_SHIELD = null;
+    public final KnownShield TOGGLE_BUTTON_SHIELD = null;
+    public final KnownShield GAMEPAD_SHIELD = null;
+    public final KnownShield PROXIMITY_SENSOR_SHIELD = null;
+    public final KnownShield MIC_SHIELD = null;
+    public final KnownShield TEMPERATURE_SENSOR_SHIELD = null;
+    public final KnownShield LIGHT_SENSOR_SHIELD = null;
+    public final KnownShield PRESSURE_SENSOR_SHIELD = null;
+    public final KnownShield GRAVITY_SENSOR_SHIELD = null;
+    public final KnownShield ACCELEROMETER_SENSOR_SHIELD = null;
+    public final KnownShield GYROSCOPE_SENSOR_SHIELD = null;
+    public final KnownShield ORIENTATION_SENSOR_SHIELD = null;
+    public final KnownShield MAGNETOMETER_SENSOR_SHIELD = null;
+    public final KnownShield PHONE_SHIELD = null;
+    public final KnownShield SMS_SHIELD = null;
+    public final KnownShield CLOCK_SHIELD = null;
+    public final KnownShield KEYBOARD_SHIELD = null;
+    public final KnownShield TWITTER_SHIELD = null;
+    public final KnownShield VOICE_RECOGNIZER_SHIELD = null;
+    public final KnownShield TERMINAL_SHIELD = null;
+    public final KnownShield FACEBOOK_SHIELD = null;
+    public final KnownShield NOTIFICATION_SHIELD = null;
+    public final KnownShield SEVEN_SEGMENT_SHIELD = null;
+    public final KnownShield SKYPE_SHIELD = null;
+    public final KnownShield MUSIC_PLAYER_SHIELD = null;
+    public final KnownShield EMAIL_SHIELD = null;
+    public final KnownShield FOURSQUARE_SHIELD = null;
+    public final KnownShield CAMERA_SHIELD = null;
+    public final KnownShield BUZZER_SHIELD = null;
+    public final KnownShield LED_SHIELD = null;
+    public final KnownShield LCD_SHIELD = null;
+    public final KnownShield TEXT_TO_SPEECH_SHIELD = null;
+    public final KnownShield DATA_LOGGER_SHIELD = null;
+    public final KnownShield PATTERN_SHIELD = null;
+    public final KnownShield INTERNET_SHIELD = null;
+    public final KnownShield COLOR_DETECTOR_SHIELD = null;
+    public final KnownShield NFC_SHIELD = null;
+    public final KnownShield GLCD_SHIELD = null;
     private List<KnownShield> knownShields;
     private ArrayList<Byte> shieldsIds;
 
@@ -102,7 +102,7 @@ public class KnownShields implements List<KnownShield> {
 
         shieldsIds = new ArrayList<>();
         for (KnownShield knownShield : knownShields) {
-            shieldsIds.add(knownShield.getId());
+            if (knownShield != null) shieldsIds.add(knownShield.getId());
         }
     }
 

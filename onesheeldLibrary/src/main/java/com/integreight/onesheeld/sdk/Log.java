@@ -1,7 +1,5 @@
 package com.integreight.onesheeld.sdk;
 
-import com.integreight.onesheeld.sdk.OneSheeldSdk;
-
 abstract class Log {
     static void d(String tag, String msg) {
         if (OneSheeldSdk.isDebuggingEnabled() && tag != null && tag.trim().length() > 0 && msg != null && msg.trim().length() > 0)

@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.util.UUID;
 
 abstract class BluetoothUtils {
+    public static final int MAXIMUM_CONNECTED_BLUETOOTH_DEVICES = 7;
     private static final UUID BLUETOOTH_SPP_PROFILE = UUID
             .fromString("00001101-0000-1000-8000-00805F9B34FB");
 

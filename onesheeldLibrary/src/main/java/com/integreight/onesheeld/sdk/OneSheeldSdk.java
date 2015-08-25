@@ -4,7 +4,8 @@ import android.content.Context;
 
 public class OneSheeldSdk {
     public static final String TAG = "OneSheeldSdk";
-    private static final FirmwareVersion COMPATIBLE_FIRMWARE_VERSION = new FirmwareVersion(1, 3);
+    private static final FirmwareVersion compatibleFirmwareVersion = new FirmwareVersion(1, 3);
+    private static final int compatibleLibraryVersion = 7;
     private static final int versionCode = BuildConfig.VERSION_CODE;
     private static final String versionName = BuildConfig.VERSION_NAME;
     private static boolean isDebuggingEnabled = false;
@@ -21,7 +22,11 @@ public class OneSheeldSdk {
     }
 
     public static FirmwareVersion getCompatibleFirmwareVersion() {
-        return COMPATIBLE_FIRMWARE_VERSION;
+        return compatibleFirmwareVersion;
+    }
+
+    public static int getCompatibleLibraryVersion() {
+        return compatibleLibraryVersion;
     }
 
     public static int getVersionCode() {
