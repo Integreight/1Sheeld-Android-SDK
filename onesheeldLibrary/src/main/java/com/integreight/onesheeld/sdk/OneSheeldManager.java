@@ -9,11 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
-import com.integreight.onesheeld.sdk.exceptions.BluetoothNotSupportedException;
-import com.integreight.onesheeld.sdk.exceptions.MissingBluetoothPermmissionsException;
-import com.integreight.onesheeld.sdk.exceptions.NullOneSheeldDeviceException;
-import com.integreight.onesheeld.sdk.exceptions.SdkNotInitializedException;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -540,11 +535,12 @@ public class OneSheeldManager {
         private BluetoothSocket socket = null;
         private OneSheeldDevice device;
 
-        public ConnectThread(OneSheeldDevice device) {
+        ConnectThread(OneSheeldDevice device) {
             this.device = device;
             setName("OneSheeldConnectThread: " + device.getName());
         }
 
+        @Override
         public void run() {
             if (this.device == null) return;
             if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering())
@@ -604,7 +600,7 @@ public class OneSheeldManager {
             }
         }
 
-        public synchronized void cancel() {
+        synchronized void cancel() {
             if (socket != null)
                 try {
                     socket.close();

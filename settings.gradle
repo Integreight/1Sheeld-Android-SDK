@@ -1,1 +1,1 @@
-include ':myapplication', 'onesheeldLibrary'
+include 'myapplication', 'onesheeldLibrary'

@@ -1,6 +1,6 @@
 package com.integreight.onesheeld.sdk;
 
-public class TimeOut extends Thread {
+class TimeOut extends Thread {
 
     boolean isTimeout;
     long milliSecondsLeft;
@@ -8,7 +8,7 @@ public class TimeOut extends Thread {
     long milliStep;
     TimeOutCallback callback;
 
-    public TimeOut(long milliSeconds, long milliStep, TimeOutCallback callback) {
+    TimeOut(long milliSeconds, long milliStep, TimeOutCallback callback) {
         isTimeout = false;
         this.totalMilliSeconds = milliSeconds;
         this.callback = callback;
@@ -17,7 +17,7 @@ public class TimeOut extends Thread {
         start();
     }
 
-    public TimeOut(long milliSeconds) {
+    TimeOut(long milliSeconds) {
         isTimeout = false;
         this.totalMilliSeconds = milliSeconds;
         this.milliStep = milliSeconds;
@@ -25,15 +25,15 @@ public class TimeOut extends Thread {
         start();
     }
 
-    public void resetTimer() {
+    void resetTimer() {
         milliSecondsLeft = totalMilliSeconds;
     }
 
-    public boolean isTimeout() {
+    boolean isTimeout() {
         return isTimeout;
     }
 
-    public void stopTimer() {
+    void stopTimer() {
         if (isAlive()) this.interrupt();
     }
 
@@ -58,7 +58,7 @@ public class TimeOut extends Thread {
         }
     }
 
-    public interface TimeOutCallback {
+    interface TimeOutCallback {
         void onTimeOut();
 
         void onTick(long milliSecondsLeft);

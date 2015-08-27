@@ -7,9 +7,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
-import com.integreight.onesheeld.sdk.exceptions.IncorrectPinException;
-import com.integreight.onesheeld.sdk.exceptions.InvalidBluetoothAddressException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -829,7 +826,7 @@ public class OneSheeldDevice {
         Looper writeHandlerLooper;
         Thread LooperThread;
 
-        public ConnectedThread(BluetoothSocket socket) {
+        ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
@@ -843,6 +840,7 @@ public class OneSheeldDevice {
             setName("OneSheeldConnectedThread: " + socket.getRemoteDevice().getAddress());
         }
 
+        @Override
         public void run() {
             if (mmSocket == null) return;
             Log.d("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
@@ -901,7 +899,7 @@ public class OneSheeldDevice {
             });
         }
 
-        public synchronized void cancel() {
+        synchronized void cancel() {
             if (mmInStream != null)
                 try {
                     mmInStream.close();
@@ -921,7 +919,7 @@ public class OneSheeldDevice {
     }
 
     private class BluetoothBufferListeningThread extends Thread {
-        public BluetoothBufferListeningThread() {
+        BluetoothBufferListeningThread() {
             start();
         }
 
@@ -948,7 +946,7 @@ public class OneSheeldDevice {
     }
 
     private class SerialBufferListeningThread extends Thread {
-        public SerialBufferListeningThread() {
+        SerialBufferListeningThread() {
             start();
         }
 
@@ -1046,11 +1044,4 @@ public class OneSheeldDevice {
 
     private class ShieldFrameNotComplete extends Exception {
     }
-
-//    @Override
-//    public boolean equals(Object o) {
-//        if(o!=null && o instanceof OneSheeldDevice)
-//        return this.getAddress().equals(((OneSheeldDevice) o).getAddress());
-//        else return false;
-//    }
 }
