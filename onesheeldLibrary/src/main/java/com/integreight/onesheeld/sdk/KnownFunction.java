@@ -31,23 +31,21 @@ public class KnownFunction {
     }
 
     public boolean hasVariableLengthArguments() {
-        if(knownArguments!=null){
-            for(KnownArgument arg:knownArguments){
-                if(arg.isVariableLength())return true;
+        if (knownArguments != null) {
+            for (KnownArgument arg : knownArguments) {
+                if (arg.isVariableLength()) return true;
             }
             return false;
-        }
-        else return false;
+        } else return false;
     }
 
     public boolean hasVariableArgumentsNumber() {
-        if(knownArguments!=null){
-            for(KnownArgument arg:knownArguments){
-                if(arg.isOptional()||arg.canBeMultiple())return true;
+        if (knownArguments != null) {
+            for (KnownArgument arg : knownArguments) {
+                if (arg.isOptional() || arg.canBeMultiple()) return true;
             }
             return false;
-        }
-        else return false;
+        } else return false;
     }
 
     @Override

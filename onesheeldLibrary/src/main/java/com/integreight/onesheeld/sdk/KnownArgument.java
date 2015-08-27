@@ -8,40 +8,40 @@ public class KnownArgument {
     private boolean isOptional;
     private boolean canBeMultiple;
 
-    KnownArgument(String name, ArgumentType type, int length,boolean isOptional) {
+    KnownArgument(String name, ArgumentType type, int length, boolean isOptional) {
         this.name = name;
         this.type = type;
         this.length = length;
         this.isVariableLength = false;
-        this.isOptional=isOptional;
-        this.canBeMultiple=false;
+        this.isOptional = isOptional;
+        this.canBeMultiple = false;
     }
 
-    KnownArgument(String name, ArgumentType type, int length,boolean isOptional, boolean canBeMultiple) {
+    KnownArgument(String name, ArgumentType type, int length, boolean isOptional, boolean canBeMultiple) {
         this.name = name;
         this.type = type;
         this.length = length;
         this.isVariableLength = false;
-        this.isOptional=isOptional;
-        this.canBeMultiple=canBeMultiple;
+        this.isOptional = isOptional;
+        this.canBeMultiple = canBeMultiple;
     }
 
-    KnownArgument(String name, ArgumentType type, boolean isVariableLength,boolean isOptional) {
+    KnownArgument(String name, ArgumentType type, boolean isVariableLength, boolean isOptional) {
         this.name = name;
         this.type = type;
         this.length = 0;
         this.isVariableLength = isVariableLength;
-        this.isOptional=isOptional;
-        this.canBeMultiple=false;
+        this.isOptional = isOptional;
+        this.canBeMultiple = false;
     }
 
-    KnownArgument(String name, ArgumentType type, boolean isVariableLength,boolean isOptional, boolean canBeMultiple) {
+    KnownArgument(String name, ArgumentType type, boolean isVariableLength, boolean isOptional, boolean canBeMultiple) {
         this.name = name;
         this.type = type;
         this.length = 0;
         this.isVariableLength = isVariableLength;
-        this.isOptional=isOptional;
-        this.canBeMultiple=canBeMultiple;
+        this.isOptional = isOptional;
+        this.canBeMultiple = canBeMultiple;
     }
 
     public String getName() {
@@ -60,11 +60,11 @@ public class KnownArgument {
         return isVariableLength;
     }
 
-    public boolean isOptional(){
+    public boolean isOptional() {
         return isOptional;
     }
 
-    public boolean canBeMultiple(){
+    public boolean canBeMultiple() {
         return canBeMultiple;
     }
 }

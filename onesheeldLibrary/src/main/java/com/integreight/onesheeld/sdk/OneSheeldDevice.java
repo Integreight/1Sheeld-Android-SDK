@@ -55,7 +55,7 @@ public class OneSheeldDevice {
     private final Object sendingDataLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
     private final Object isConnectedLock = new Object();
-    private final int MAX_BUFFER_SIZE=1024;
+    private final int MAX_BUFFER_SIZE = 1024;
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
