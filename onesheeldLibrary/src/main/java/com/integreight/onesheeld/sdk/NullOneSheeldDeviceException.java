@@ -1,11 +1,11 @@
 package com.integreight.onesheeld.sdk;
 
 public class NullOneSheeldDeviceException extends OneSheeldException {
-    public NullOneSheeldDeviceException(String msg) {
+    NullOneSheeldDeviceException(String msg) {
         super(msg);
     }
 
-    public NullOneSheeldDeviceException(String msg, Exception e) {
-        super(msg,e);
+    NullOneSheeldDeviceException(String msg, Exception e) {
+        super(msg, e);
     }
 }
