@@ -5,6 +5,6 @@ public enum ArgumentType {
     INTEGER,
     RAW_BYTE_ARRAY,
     STRING,
-    CHAR,
-    BYTE
+    BOOLEAN,
+    BYTE,
 }

@@ -7,19 +7,15 @@ public class KnownFunction {
     private byte id;
     private String name;
     private List<KnownArgument> knownArguments;
-    private boolean hasVariableLengthArguments;
-    private boolean hasVariableArgumentsNumber;
 
-    KnownFunction(byte id, String name, List<KnownArgument> knownArguments, boolean hasVariableArgumentsNumber, boolean hasVariableLengthArguments) {
+    KnownFunction(byte id, String name, List<KnownArgument> knownArguments) {
         this.id = id;
         this.name = name;
         this.knownArguments = knownArguments;
-        this.hasVariableArgumentsNumber = hasVariableArgumentsNumber;
-        this.hasVariableLengthArguments = hasVariableLengthArguments;
     }
 
     public static KnownFunction getFunctionWithId(byte id) {
-        return new KnownFunction(id, null, null, false, false);
+        return new KnownFunction(id, null, null);
     }
 
     public byte getId() {
@@ -35,11 +31,23 @@ public class KnownFunction {
     }
 
     public boolean hasVariableLengthArguments() {
-        return hasVariableLengthArguments;
+        if(knownArguments!=null){
+            for(KnownArgument arg:knownArguments){
+                if(arg.isVariableLength())return true;
+            }
+            return false;
+        }
+        else return false;
     }
 
     public boolean hasVariableArgumentsNumber() {
-        return hasVariableArgumentsNumber;
+        if(knownArguments!=null){
+            for(KnownArgument arg:knownArguments){
+                if(arg.isOptional()||arg.canBeMultiple())return true;
+            }
+            return false;
+        }
+        else return false;
     }
 
     @Override
