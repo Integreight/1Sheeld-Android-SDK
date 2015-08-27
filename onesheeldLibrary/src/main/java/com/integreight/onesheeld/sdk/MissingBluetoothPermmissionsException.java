@@ -1,4 +1,4 @@
-package com.integreight.onesheeld.sdk.exceptions;
+package com.integreight.onesheeld.sdk;
 
 public class MissingBluetoothPermmissionsException extends OneSheeldException {
     public MissingBluetoothPermmissionsException(String msg) {

@@ -1,4 +1,4 @@
-package com.integreight.onesheeld.sdk.exceptions;
+package com.integreight.onesheeld.sdk;
 
 public class InvalidBluetoothAddressException extends OneSheeldException {
     public InvalidBluetoothAddressException(String msg) {

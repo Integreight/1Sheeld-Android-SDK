@@ -1,4 +1,4 @@
-package com.integreight.onesheeld.sdk.exceptions;
+package com.integreight.onesheeld.sdk;
 
 public class IncorrectPinException extends OneSheeldException {
     public IncorrectPinException(String msg) {
