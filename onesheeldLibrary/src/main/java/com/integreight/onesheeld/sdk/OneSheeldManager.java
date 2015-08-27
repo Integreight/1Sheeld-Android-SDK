@@ -17,6 +17,7 @@ import com.integreight.onesheeld.sdk.exceptions.SdkNotInitializedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -24,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class OneSheeldManager {
     private static OneSheeldManager instance = null;
     private final Object currentStateLock = new Object();
+    private final Object connectedDevicesLock = new Object();
     private int retryCount;
     private int scanningTimeOutValue;
     private TimeOut scanningTimeOut;
@@ -110,7 +112,11 @@ public class OneSheeldManager {
 
     public void broadcastSerialData(byte[] data, OneSheeldDevice exceptionArray[]) {
         Log.d("Manager: Broadcasting serial data to all connected devices.");
-        for (OneSheeldDevice device : connectedDevices.values()) {
+        ArrayList<OneSheeldDevice> tempConnectedDevices;
+        synchronized (connectedDevicesLock) {
+            tempConnectedDevices = new ArrayList<>(connectedDevices.values());
+        }
+        for (OneSheeldDevice device : tempConnectedDevices) {
             boolean foundInExceptArray = false;
             if (exceptionArray != null)
                 for (OneSheeldDevice exceptDevice : exceptionArray)
@@ -136,7 +142,11 @@ public class OneSheeldManager {
 
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback, OneSheeldDevice exceptionArray[]) {
         Log.d("Manager: Broadcasting frame to all connected devices.");
-        for (OneSheeldDevice device : connectedDevices.values()) {
+        ArrayList<OneSheeldDevice> tempConnectedDevices;
+        synchronized (connectedDevicesLock) {
+            tempConnectedDevices = new ArrayList<>(connectedDevices.values());
+        }
+        for (OneSheeldDevice device : tempConnectedDevices) {
             boolean foundInExceptArray = false;
             if (exceptionArray != null)
                 for (OneSheeldDevice exceptDevice : exceptionArray)
@@ -175,12 +185,18 @@ public class OneSheeldManager {
     }
 
     public List<OneSheeldDevice> getConnectedDevices() {
-        return Collections.unmodifiableList(new ArrayList<>(connectedDevices.values()));
+        synchronized (connectedDevicesLock) {
+            return Collections.unmodifiableList(new ArrayList<>(connectedDevices.values()));
+        }
     }
 
     public void disconnectAll() {
         Log.d("Manager: Disconnect all connected devices.");
-        for (OneSheeldDevice device : connectedDevices.values()) {
+        ArrayList<OneSheeldDevice> tempConnectedDevices;
+        synchronized (connectedDevicesLock) {
+            tempConnectedDevices = new ArrayList<>(connectedDevices.values());
+        }
+        for (OneSheeldDevice device : tempConnectedDevices) {
             disconnect(device);
         }
     }
@@ -237,11 +253,15 @@ public class OneSheeldManager {
             }
         }
         if (isReady) {
-            if (device.isConnected() || connectedDevices.containsKey(device.getAddress())) {
+            HashMap<String, OneSheeldDevice> tempConnectedDevices;
+            synchronized (connectedDevicesLock) {
+                tempConnectedDevices = new HashMap<>(connectedDevices);
+            }
+            if (device.isConnected() || tempConnectedDevices.containsKey(device.getAddress())) {
                 Log.d("Manager: Connection to " + device.getName() + " failed, already connected to that device.");
                 onError(device, OneSheeldError.ALREADY_CONNECTED_TO_DEVICE);
                 device.onError(OneSheeldError.ALREADY_CONNECTED_TO_DEVICE);
-            } else if (connectedDevices.size() >= BluetoothUtils.MAXIMUM_CONNECTED_BLUETOOTH_DEVICES) {
+            } else if (tempConnectedDevices.size() >= BluetoothUtils.MAXIMUM_CONNECTED_BLUETOOTH_DEVICES) {
                 Log.d("Manager: Connection to " + device.getName() + " failed, maximum Bluetooth connections reached.");
                 onError(device, OneSheeldError.MAXIMUM_BLUETOOTH_CONNECTIONS_REACHED);
                 device.onError(OneSheeldError.MAXIMUM_BLUETOOTH_CONNECTIONS_REACHED);
@@ -301,8 +321,10 @@ public class OneSheeldManager {
     }
 
     void onDisconnect(OneSheeldDevice device) {
-        while (connectedDevices.containsKey(device.getAddress()))
-            connectedDevices.remove(device.getAddress());
+        synchronized (connectedDevicesLock) {
+            while (connectedDevices.containsKey(device.getAddress()))
+                connectedDevices.remove(device.getAddress());
+        }
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
             connectionCallback.onDisconnect(device);
         }
@@ -316,9 +338,11 @@ public class OneSheeldManager {
 
     private synchronized void onConnectionStart(OneSheeldDevice device, BluetoothSocket socket) {
         Log.d("Manager: Delegate the connection management of " + device.getName() + " to the device.");
-        while (connectedDevices.containsKey(device.getAddress()))
-            connectedDevices.remove(device.getAddress());
-        connectedDevices.put(device.getAddress(), device);
+        synchronized (connectedDevicesLock) {
+            while (connectedDevices.containsKey(device.getAddress()))
+                connectedDevices.remove(device.getAddress());
+            connectedDevices.put(device.getAddress(), device);
+        }
         device.connectUsing(socket);
         synchronized (currentStateLock) {
             currentState = ConnectionState.READY;
