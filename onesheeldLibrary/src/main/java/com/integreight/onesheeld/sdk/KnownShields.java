@@ -237,6 +237,7 @@ public class KnownShields implements List<KnownShield> {
             add(new KnownArgument("Request Id", ArgumentType.INTEGER, 2, false));
         }}));
         add(new KnownFunction((byte) 0x13, "HttpResponse::getHeader", new ArrayList<KnownArgument>() {{
+            add(new KnownArgument("Request Id", ArgumentType.INTEGER, 2, false));
             add(new KnownArgument("Header Name", ArgumentType.STRING, true, false));
         }}));
         add(new KnownFunction((byte) 0x09, "InternetShield::performGet", new ArrayList<KnownArgument>() {{
