@@ -137,6 +137,7 @@ public class OneSheeldDevice {
     private boolean isMuted;
     private int[] digitalOutputData = {0, 0, 0};
     private int[] digitalInputData = {0, 0, 0};
+    private boolean isPinDebuggingEnabled;
 
     /**
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
@@ -201,6 +202,27 @@ public class OneSheeldDevice {
         executeMultiByteCommand = 0;
         multiByteChannel = 0;
         storedInputData = new byte[MAX_DATA_BYTES];
+        isPinDebuggingEnabled = false;
+    }
+
+    /**
+     * Sets the pin debugging logging messages.
+     * <p>The OneSheeldSdk.setDebugging() should be enabled first</p>
+     * <p>This includes huge messages if the 1Sheeld pins are floating.</p>
+     *
+     * @return the boolean
+     */
+    public void setPinsDebugging(boolean isPinDebuggingEnabled) {
+        this.isPinDebuggingEnabled = isPinDebuggingEnabled;
+    }
+
+    /**
+     * Checks whether the pin debugging logging messages is enabled or not.
+     *
+     * @return the boolean
+     */
+    public boolean isPinDebuggingEnabled() {
+        return isPinDebuggingEnabled;
     }
 
     private void stopBuffersThreads() {
@@ -461,7 +483,8 @@ public class OneSheeldDevice {
      * @throws NullPointerException if the passed frame is null
      */
     public void queueShieldFrame(ShieldFrame frame) {
-        if(frame==null)throw new NullPointerException("The passed frame is null, have you checked its validity?");
+        if (frame == null)
+            throw new NullPointerException("The passed frame is null, have you checked its validity?");
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
@@ -536,7 +559,8 @@ public class OneSheeldDevice {
      * @throws NullPointerException if passed frame is null
      */
     public void sendShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
-        if(frame==null)throw new NullPointerException("The passed frame is null, have you checked its validity?");
+        if (frame == null)
+            throw new NullPointerException("The passed frame is null, have you checked its validity?");
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
@@ -594,7 +618,8 @@ public class OneSheeldDevice {
      * @throws NullPointerException if the passed data array is null
      */
     public void sendSerialData(byte[] data) {
-        if(data==null)throw new NullPointerException("The passed data is null, have you checked its validity?");
+        if (data == null)
+            throw new NullPointerException("The passed data is null, have you checked its validity?");
 
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
@@ -676,7 +701,8 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
+        if (isPinDebuggingEnabled)
+            Log.d("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, mode};
@@ -696,7 +722,8 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
+        if (isPinDebuggingEnabled)
+            Log.d("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte portNumber = (byte) ((pin >> 3) & 0x0F);
@@ -724,7 +751,8 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
+        if (isPinDebuggingEnabled)
+            Log.d("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, PWM,
@@ -745,7 +773,8 @@ public class OneSheeldDevice {
 
         for (int pinNumber : differentPinNumbers) {
             int actualPinNumber = (portNumber << 3) + pinNumber;
-            Log.d("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
+            if (isPinDebuggingEnabled)
+                Log.d("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
             for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
                 oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, getDigitalPinStatus(actualPinNumber));
             }
