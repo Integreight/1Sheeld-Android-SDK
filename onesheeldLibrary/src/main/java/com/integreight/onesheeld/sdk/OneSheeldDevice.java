@@ -31,39 +31,31 @@ public class OneSheeldDevice {
      */
     public static final byte OUTPUT = 1;
     /**
-     * The constant PWM.
+     * The pwm pin mode.
      */
     public static final byte PWM = 3;
     /**
-     * The constant LOW.
-     */
-    public static final boolean LOW = false;
-    /**
-     * The constant HIGH.
-     */
-    public static final boolean HIGH = true;
-    /**
-     * The constant A0.
+     * A name for pin 14
      */
     public static final int A0 = 14;
     /**
-     * The constant A1.
+     * A name for pin 15
      */
     public static final int A1 = 15;
     /**
-     * The constant A2.
+     * A name for pin 16
      */
     public static final int A2 = 16;
     /**
-     * The constant A3.
+     * A name for pin 17
      */
     public static final int A3 = 17;
     /**
-     * The constant A4.
+     * A name for pin 18
      */
     public static final int A4 = 18;
     /**
-     * The constant A5.
+     * A name for pin 19
      */
     public static final int A5 = 19;
     private final char MAX_DATA_BYTES = 4096;
@@ -130,9 +122,12 @@ public class OneSheeldDevice {
     private int[] digitalInputData = {0, 0, 0};
 
     /**
-     * Instantiates a new One sheeld device.
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
+     * <p>The name of the device will be the same as the address.</p>
      *
-     * @param address the address
+     * @param address the Bluetooth address of the device
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
      */
     public OneSheeldDevice(String address) {
         checkBluetoothAddress(address);
@@ -143,10 +138,12 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Instantiates a new One sheeld device.
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
      *
-     * @param address the address
-     * @param name the name
+     * @param address the Bluetooth address of the device
+     * @param name the name of the device
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
      */
     public OneSheeldDevice(String address, String name) {
         checkBluetoothAddress(address);
@@ -156,13 +153,6 @@ public class OneSheeldDevice {
         initialize();
     }
 
-    /**
-     * Instantiates a new One sheeld device.
-     *
-     * @param address the address
-     * @param name the name
-     * @param isPaired the is paired
-     */
     OneSheeldDevice(String address, String name, boolean isPaired) {
         checkBluetoothAddress(address);
         this.name = name;
@@ -206,7 +196,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Add connection callback.
+     * Add a connection callback.
      *
      * @param connectionCallback the connection callback
      */
@@ -216,7 +206,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Add data callback.
+     * Add a data callback.
      *
      * @param dataCallback the data callback
      */
@@ -226,7 +216,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Add version query callback.
+     * Add a version query callback.
      *
      * @param versionQueryCallback the version query callback
      */
@@ -236,7 +226,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Add error callback.
+     * Add an error callback.
      *
      * @param errorCallback the error callback
      */
@@ -246,7 +236,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Remove connection callback.
+     * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
      */
@@ -256,7 +246,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Remove error callback.
+     * Remove an error callback.
      *
      * @param errorCallback the error callback
      */
@@ -266,7 +256,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Remove data callback.
+     * Remove a data callback.
      *
      * @param dataCallback the data callback
      */
@@ -276,7 +266,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Remove version query callback.
+     * Remove a version query callback.
      *
      * @param versionQueryCallback the version query callback
      */
@@ -286,7 +276,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Add callbacks.
+     * Add all of the device callbacks in one method call.
      *
      * @param connectionCallback the connection callback
      * @param dataCallback the data callback
@@ -327,17 +317,12 @@ public class OneSheeldDevice {
         }
     }
 
-    /**
-     * Gets bluetooth device.
-     *
-     * @return the bluetooth device
-     */
     BluetoothDevice getBluetoothDevice() {
         return bluetoothDevice;
     }
 
     /**
-     * Gets name.
+     * Gets the name of the device.
      *
      * @return the name
      */
@@ -345,17 +330,12 @@ public class OneSheeldDevice {
         return name;
     }
 
-    /**
-     * Sets name.
-     *
-     * @param name the name
-     */
     void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Gets address.
+     * Gets the address of the device.
      *
      * @return the address
      */
@@ -364,7 +344,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Is paired.
+     * Is the device paired.
      *
      * @return the boolean
      */
@@ -372,20 +352,10 @@ public class OneSheeldDevice {
         return isPaired;
     }
 
-    /**
-     * Sets paired.
-     *
-     * @param isPaired the is paired
-     */
     void setPaired(boolean isPaired) {
         this.isPaired = isPaired;
     }
 
-    /**
-     * Connect using.
-     *
-     * @param socket the socket
-     */
     synchronized void connectUsing(BluetoothSocket socket) {
         try {
             closeConnection();
@@ -410,22 +380,12 @@ public class OneSheeldDevice {
         }
     }
 
-    /**
-     * On error.
-     *
-     * @param error the error
-     */
     void onError(OneSheeldError error) {
         for (OneSheeldErrorCallback errorCallback : errorCallbacks) {
             errorCallback.onError(this, error);
         }
     }
 
-    /**
-     * On connection retry.
-     *
-     * @param retryCount the retry count
-     */
     void onConnectionRetry(int retryCount) {
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
             connectionCallback.onConnectionRetry(this, retryCount);
@@ -478,7 +438,7 @@ public class OneSheeldDevice {
 
 
     /**
-     * Queue shield frame.
+     * Explicitly Queue a shield frame for sending after the Arduino exits the callback.
      *
      * @param frame the frame
      */
@@ -550,10 +510,10 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Send shield frame.
+     * Send a shield frame or queue it if Arduino is in a callback.
      *
      * @param frame the frame
-     * @param waitIfInACallback the wait if in a callback
+     * @param waitIfInACallback if true the frame will be queued till Arduino exits its callback
      */
     public void sendShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
         if (!isConnected()) {
@@ -584,7 +544,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Send shield frame.
+     * Send shield frame without waiting.
      *
      * @param frame the frame
      */
@@ -606,7 +566,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Send serial data.
+     * Send raw serial data.
      *
      * @param data the data
      */
@@ -659,10 +619,10 @@ public class OneSheeldDevice {
 
 
     /**
-     * Digital read.
+     * Digital read from a specific pin.
      *
      * @param pin the pin
-     * @return the boolean
+     * @return the pin status
      */
     public boolean digitalRead(int pin) {
         if (!isConnected()) {
@@ -680,7 +640,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Pin mode.
+     * Changes a specific pin's mode.
      *
      * @param pin the pin
      * @param mode the mode
@@ -700,7 +660,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Digital write.
+     * Digital write to a specific pin.
      *
      * @param pin the pin
      * @param value the value
@@ -728,7 +688,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Analog write.
+     * Analog write to a specific pin.
      *
      * @param pin the pin
      * @param value the value
@@ -767,7 +727,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Query firmware version.
+     * Query the firmware version.
      */
     public void queryFirmwareVersion() {
         if (!isConnected()) {
@@ -780,7 +740,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Query library version.
+     * Query the library version.
      */
     public void queryLibraryVersion() {
         if (!isConnected()) {
@@ -794,7 +754,7 @@ public class OneSheeldDevice {
 
 
     /**
-     * Has responded to firmware version query.
+     * Checks whether the device responded to the firmware version query.
      *
      * @return the boolean
      */
@@ -803,7 +763,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Has responded to library version query.
+     * Checks whether the device responded to the library version query.
      *
      * @return the boolean
      */
@@ -843,7 +803,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Mute void.
+     * Mute all communications with the device.
      */
     public void mute() {
         if (!isConnected()) {
@@ -858,7 +818,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Un mute.
+     * Unmute all communications with the device.
      */
     public void unMute() {
         if (!isConnected()) {
@@ -873,7 +833,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Is muted.
+     * Checks whether the device is muted or not.
      *
      * @return the boolean
      */
@@ -882,7 +842,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Is arduino in a callback.
+     * Checks whether the Arduino is in a callback or not.
      *
      * @return the boolean
      */
@@ -916,7 +876,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Gets firmware version.
+     * Gets the device firmware version.
      *
      * @return the firmware version
      */
@@ -925,7 +885,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Gets library version.
+     * Gets the Arudino library version.
      *
      * @return the library version
      */
@@ -1017,7 +977,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Disconnect void.
+     * Disconnect the device.
      */
     public void disconnect() {
         Log.d("Device " + this.name + ": Disconnection request received.");
@@ -1025,7 +985,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Connect void.
+     * Connect to the device.
      */
     public void connect() {
         Log.d("Device " + this.name + ": Delegate the connection request to the manager.");
@@ -1033,7 +993,7 @@ public class OneSheeldDevice {
     }
 
     /**
-     * Is connected.
+     * Checks whether the device is connected or not.
      *
      * @return the boolean
      */
@@ -1073,24 +1033,9 @@ public class OneSheeldDevice {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
-        /**
-         * The Write handler.
-         */
         Handler writeHandler;
-        /**
-         * The Write handler looper.
-         */
         Looper writeHandlerLooper;
-        /**
-         * The Looper thread.
-         */
         Thread LooperThread;
-
-        /**
-         * Instantiates a new Connected thread.
-         *
-         * @param socket the socket
-         */
         ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
@@ -1164,9 +1109,6 @@ public class OneSheeldDevice {
             });
         }
 
-        /**
-         * Cancel void.
-         */
         synchronized void cancel() {
             if (mmInStream != null)
                 try {
@@ -1187,9 +1129,6 @@ public class OneSheeldDevice {
     }
 
     private class BluetoothBufferListeningThread extends Thread {
-        /**
-         * Instantiates a new Bluetooth buffer listening thread.
-         */
         BluetoothBufferListeningThread() {
             start();
         }
@@ -1217,9 +1156,6 @@ public class OneSheeldDevice {
     }
 
     private class SerialBufferListeningThread extends Thread {
-        /**
-         * Instantiates a new Serial buffer listening thread.
-         */
         SerialBufferListeningThread() {
             start();
         }
