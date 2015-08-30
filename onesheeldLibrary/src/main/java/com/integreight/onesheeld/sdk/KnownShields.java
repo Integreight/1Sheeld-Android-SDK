@@ -26,6 +26,7 @@ import java.util.ListIterator;
  * Represents a list of all implemented shields in 1Sheeld app.
  * <p>All of the methods for adding or removing elements from list throws
  * <tt>UnsupportedOperationException</tt></p>
+ *
  * @see KnownShield
  * @see ArgumentType
  * @see KnownFunction
@@ -518,6 +519,7 @@ public class KnownShields implements List<KnownShield> {
         }
         return instance;
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -525,6 +527,7 @@ public class KnownShields implements List<KnownShield> {
     public void add(int location, KnownShield object) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -532,6 +535,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean add(KnownShield object) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -539,6 +543,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean addAll(int location, Collection<? extends KnownShield> collection) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -546,6 +551,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean addAll(Collection<? extends KnownShield> collection) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -598,6 +604,7 @@ public class KnownShields implements List<KnownShield> {
     public ListIterator<KnownShield> listIterator(int location) {
         return knownShields.listIterator(location);
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -605,6 +612,7 @@ public class KnownShields implements List<KnownShield> {
     public KnownShield remove(int location) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -612,6 +620,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean remove(Object object) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -619,6 +628,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean removeAll(Collection<?> collection) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */
@@ -626,6 +636,7 @@ public class KnownShields implements List<KnownShield> {
     public boolean retainAll(Collection<?> collection) {
         throw new UnsupportedOperationException();
     }
+
     /**
      * Throws <tt>UnsupportedOperationException</tt>.
      */

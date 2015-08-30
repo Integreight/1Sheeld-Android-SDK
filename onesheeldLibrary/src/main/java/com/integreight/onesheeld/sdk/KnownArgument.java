@@ -18,6 +18,7 @@ package com.integreight.onesheeld.sdk;
 
 /**
  * Represents a known argument for a {@link KnownFunction} of {@link KnownShield}.
+ *
  * @see KnownShields
  * @see ArgumentType
  * @see KnownShield

@@ -174,7 +174,8 @@ public class ShieldFrame {
      * @throws NullPointerException if the argument is null
      */
     public void addArgument(byte[] argument) {
-        if(argument==null)throw new NullPointerException("The passed argument is null, have you checked its validity?");
+        if (argument == null)
+            throw new NullPointerException("The passed argument is null, have you checked its validity?");
         arguments.add(Arrays.copyOfRange(argument, 0, (argument.length > 255) ? 255 : argument.length));
     }
 
@@ -250,7 +251,8 @@ public class ShieldFrame {
      * @throws NullPointerException if the passed data is null
      */
     public void addArgument(String data) {
-        if(data==null)throw new NullPointerException("The passed string is null, have you checked its validity?");
+        if (data == null)
+            throw new NullPointerException("The passed string is null, have you checked its validity?");
         String temp = (data.length() > 255) ? data.substring(0, 255) : data;
         arguments.add(temp.getBytes(Charset.forName("UTF-8")));
     }

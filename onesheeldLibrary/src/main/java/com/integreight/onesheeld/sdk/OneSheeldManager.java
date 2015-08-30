@@ -434,7 +434,7 @@ public class OneSheeldManager {
      * @throws SdkNotInitializedException           if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
      * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
      * @throws BluetoothNotSupportedException       if the Android device doesn't support Bluetooth.
-     * @throws NullPointerException if the device is null
+     * @throws NullPointerException                 if the device is null
      */
     public void connect(OneSheeldDevice device) {
         if (device == null)

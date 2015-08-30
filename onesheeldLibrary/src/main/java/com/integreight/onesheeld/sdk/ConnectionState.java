@@ -18,6 +18,7 @@ package com.integreight.onesheeld.sdk;
 
 /**
  * Represents various states for {@link OneSheeldManager}.
+ *
  * @see OneSheeldManager
  */
 public enum ConnectionState {

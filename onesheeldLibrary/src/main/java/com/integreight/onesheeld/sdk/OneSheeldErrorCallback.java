@@ -25,7 +25,7 @@ public abstract class OneSheeldErrorCallback {
      * {@link OneSheeldDevice} or {@link OneSheeldManager}.
      *
      * @param device the device if the error is device related or null it is not.
-     * @param error the error
+     * @param error  the error
      */
     public void onError(OneSheeldDevice device, OneSheeldError error) {
 

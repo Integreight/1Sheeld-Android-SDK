@@ -32,7 +32,7 @@ public class OneSheeldSdk {
     private static Context context;
     private static boolean isInit = false;
 
-    private OneSheeldSdk(){
+    private OneSheeldSdk() {
 
     }
 
@@ -102,10 +102,11 @@ public class OneSheeldSdk {
      * @throws NullPointerException if the passed context is null.
      */
     public static void init(Context context) {
-        if(context==null)throw new NullPointerException("The passed context is null, have you checked its validity?");
+        if (context == null)
+            throw new NullPointerException("The passed context is null, have you checked its validity?");
         OneSheeldSdk.context = context;
         isInit = true;
-        Log.d("OneSheeld SDK v"+versionName+" is initialized.");
+        Log.d("OneSheeld SDK v" + versionName + " is initialized.");
     }
 
     static Context getContext() {

@@ -20,6 +20,7 @@ package com.integreight.onesheeld.sdk;
  * Represents various possible errors that could happen during Bluetooth
  * scanning, connection, or data transmission in {@link OneSheeldManager}
  * or {@link OneSheeldDevice}.
+ *
  * @see OneSheeldManager
  * @see OneSheeldDevice
  */

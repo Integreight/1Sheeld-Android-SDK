@@ -20,6 +20,7 @@ package com.integreight.onesheeld.sdk;
  * Represents various data events for {@link OneSheeldDevice}.
  * <p>Should be extended and passed to {@link OneSheeldDevice} to get notified
  * about pins status change, raw data receive or shield frame receive.</p>
+ *
  * @see OneSheeldDevice
  */
 public abstract class OneSheeldDataCallback {
@@ -28,7 +29,7 @@ public abstract class OneSheeldDataCallback {
      * value.
      *
      * @param pinNumber the pin number
-     * @param newValue the new value
+     * @param newValue  the new value
      */
     public void onDigitalPinStatusChange(int pinNumber, boolean newValue) {
 
@@ -58,13 +59,13 @@ public abstract class OneSheeldDataCallback {
     /**
      * This method gets called for every {@link ShieldFrame} of a
      * {@link KnownShield} received on the serial pins of 1Sheeld board.
-     *
+     * <p/>
      * <p>For a <tt>ShieldFrame</tt> to be known, its shield id and function id
      * should be present in one of {@link KnownShield}s in {@link KnownShields}
      * list. </p>
      *
      * @param knownShield the known shield
-     * @param frame the frame
+     * @param frame       the frame
      * @see ShieldFrame
      * @see KnownShield
      * @see KnownShields

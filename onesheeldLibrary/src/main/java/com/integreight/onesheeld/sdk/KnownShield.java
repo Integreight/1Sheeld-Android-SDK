@@ -21,6 +21,7 @@ import java.util.List;
 
 /**
  * Represents a known shield.
+ *
  * @see KnownShields
  * @see ArgumentType
  * @see KnownFunction

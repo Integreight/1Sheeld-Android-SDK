@@ -21,6 +21,7 @@ package com.integreight.onesheeld.sdk;
  * <p>Should be extended and passed to either {@link OneSheeldManager} or
  * {@link OneSheeldDevice} to get notified about connection and disconnection
  * of Bluetooth devices.</p>
+ *
  * @see OneSheeldDevice
  * @see OneSheeldManager
  */
@@ -60,7 +61,7 @@ public abstract class OneSheeldConnectionCallback {
      * <p>This method won't be called for the automatic retries if configured in
      * {@link OneSheeldManager}.</p>
      *
-     * @param device the device
+     * @param device     the device
      * @param retryCount the retry count
      * @see OneSheeldDevice
      * @see OneSheeldManager
