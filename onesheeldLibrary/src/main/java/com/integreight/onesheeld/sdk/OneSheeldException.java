@@ -17,7 +17,7 @@
 package com.integreight.onesheeld.sdk;
 
 /**
- * Represents a generic OneSheeldException.
+ * Represents a generic 1Sheeld exception.
  */
 public class OneSheeldException extends RuntimeException {
     OneSheeldException(String msg) {
