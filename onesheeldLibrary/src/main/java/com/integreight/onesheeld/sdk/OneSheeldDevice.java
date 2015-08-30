@@ -1071,6 +1071,7 @@ public class OneSheeldDevice {
     }
 
     private synchronized void closeConnection() {
+        stopBuffersThreads();
         if (connectedThread != null) {
             connectedThread.cancel();
             connectedThread.interrupt();
@@ -1178,6 +1179,9 @@ public class OneSheeldDevice {
         }
 
         synchronized void cancel() {
+            if (writeHandlerLooper != null) {
+                writeHandlerLooper.quit();
+            }
             if (mmInStream != null)
                 try {
                     mmInStream.close();
