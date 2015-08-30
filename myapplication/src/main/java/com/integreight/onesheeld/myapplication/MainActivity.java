@@ -45,6 +45,10 @@ public class MainActivity extends ActionBarActivity {
         OneSheeldSdk.getManager().broadcastShieldFrame(sf);
     }
 
+    public void onClickDisconnectAll(View v){
+        OneSheeldSdk.getManager().disconnectAll();
+   }
+
     public void onClickBroadcastOff(View v){
         ShieldFrame sf=new ShieldFrame((byte)0x03,(byte)0x01);
         sf.addArgument(false);
@@ -71,7 +75,7 @@ public class MainActivity extends ActionBarActivity {
                 oneSheeldDevices.get(position - 1).addDataCallback(new OneSheeldDataCallback() {
                     @Override
                     public void onShieldFrameReceive(ShieldFrame frame) {
-                        Log.d("MainActivity","Frame:"+frame.getArgumentAsString(0));
+                        Log.d("MainActivity", "Frame:" + frame.getArgumentAsString(0));
                     }
                 });
             }
@@ -81,9 +85,9 @@ public class MainActivity extends ActionBarActivity {
 
             }
         });
+        OneSheeldSdk.setDebugging(true);
         OneSheeldSdk.init(this);
         OneSheeldSdk.getManager().setRetryCount(4);
-        OneSheeldSdk.setDebugging(true);
         OneSheeldSdk.getManager().setAutomaticConnectingRetries(true);
 
         OneSheeldSdk.getManager().addCallbacks(new OneSheeldScanningCallback() {
