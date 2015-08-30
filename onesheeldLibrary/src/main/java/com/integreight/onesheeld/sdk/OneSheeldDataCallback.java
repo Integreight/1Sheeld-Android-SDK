@@ -20,6 +20,8 @@ package com.integreight.onesheeld.sdk;
  * Represents various data events for {@link OneSheeldDevice}.
  * <p>Should be extended and passed to {@link OneSheeldDevice} to get notified
  * about pins status change, raw data receive or shield frame receive.</p>
+ * <p>Most of the methods here gets called in a thread different than the UI thread.
+ * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  *
  * @see OneSheeldDevice
  */

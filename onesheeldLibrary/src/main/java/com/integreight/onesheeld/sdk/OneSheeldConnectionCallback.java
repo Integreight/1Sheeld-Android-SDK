@@ -21,6 +21,8 @@ package com.integreight.onesheeld.sdk;
  * <p>Should be extended and passed to either {@link OneSheeldManager} or
  * {@link OneSheeldDevice} to get notified about connection and disconnection
  * of Bluetooth devices.</p>
+ * <p>Most of the methods here gets called in a thread different than the UI thread.
+ * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  *
  * @see OneSheeldDevice
  * @see OneSheeldManager

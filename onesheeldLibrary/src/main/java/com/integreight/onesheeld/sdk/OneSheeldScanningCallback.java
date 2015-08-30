@@ -20,6 +20,8 @@ import java.util.List;
 
 /**
  * Represents various scanning events for {@link OneSheeldManager}.
+ * <p>Most of the methods here gets called in a thread different than the UI thread.
+ * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  */
 public abstract class OneSheeldScanningCallback {
     /**

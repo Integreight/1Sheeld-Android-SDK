@@ -35,6 +35,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Represents a hardware 1Sheeld board.
  * <p>It is responsible for all operations and communications with the board.</p>
+ *
  * @see OneSheeldManager
  */
 public class OneSheeldDevice {
@@ -157,7 +158,7 @@ public class OneSheeldDevice {
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
      *
      * @param address the Bluetooth address of the device
-     * @param name the name of the device
+     * @param name    the name of the device
      * @throws InvalidBluetoothAddressException if the address is incorrect
      * @see InvalidBluetoothAddressException
      */
@@ -294,10 +295,10 @@ public class OneSheeldDevice {
     /**
      * Add all of the device callbacks in one method call.
      *
-     * @param connectionCallback the connection callback
-     * @param dataCallback the data callback
+     * @param connectionCallback   the connection callback
+     * @param dataCallback         the data callback
      * @param versionQueryCallback the version query callback
-     * @param errorCallback the error callback
+     * @param errorCallback        the error callback
      */
     public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback) {
         addConnectionCallback(connectionCallback);
@@ -530,7 +531,7 @@ public class OneSheeldDevice {
     /**
      * Send a shield frame or queue it if Arduino is in a callback.
      *
-     * @param frame the frame
+     * @param frame             the frame
      * @param waitIfInACallback if true the frame will be queued till Arduino exits its callback
      * @throws NullPointerException if passed frame is null
      */
@@ -653,20 +654,21 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
         }
-        Log.d("Device " + this.name + ": Digital read from pin " + pin + ".");
+        if (isPinDebuggingEnabled)
+            Log.d("Device " + this.name + ": Digital read from pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         return getDigitalPinStatus(pin);
     }
 
-    private boolean getDigitalPinStatus(int pin){
+    private boolean getDigitalPinStatus(int pin) {
         return ((digitalInputData[pin >> 3] >> (pin & 0x07)) & 0x01) > 0;
     }
 
     /**
      * Changes a specific pin's mode.
      *
-     * @param pin the pin
+     * @param pin  the pin
      * @param mode the mode
      */
     public void pinMode(int pin, byte mode) {
@@ -686,7 +688,7 @@ public class OneSheeldDevice {
     /**
      * Digital write to a specific pin.
      *
-     * @param pin the pin
+     * @param pin   the pin
      * @param value the value
      */
     public void digitalWrite(int pin, boolean value) {
@@ -714,7 +716,7 @@ public class OneSheeldDevice {
     /**
      * Analog write to a specific pin.
      *
-     * @param pin the pin
+     * @param pin   the pin
      * @param value the value
      */
     public void analogWrite(int pin, int value) {
@@ -809,7 +811,7 @@ public class OneSheeldDevice {
         isBluetoothBufferWaiting = false;
         isSerialBufferWaiting = false;
         arduinoLibraryVersion = -1;
-        isMuted=false;
+        isMuted = false;
         stopBuffersThreads();
         clearAllBuffers();
         resetProcessInput();
@@ -840,13 +842,13 @@ public class OneSheeldDevice {
         isMuted = true;
     }
 
-    private void sendMuteFrame(){
+    private void sendMuteFrame() {
         synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{1});
         }
     }
 
-    private void sendUnMuteFrame(){
+    private void sendUnMuteFrame() {
         synchronized (sendingDataLock) {
             sysex(MUTE_FIRMATA, new byte[]{0});
         }
@@ -1069,6 +1071,7 @@ public class OneSheeldDevice {
         Handler writeHandler;
         Looper writeHandlerLooper;
         Thread LooperThread;
+
         ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
