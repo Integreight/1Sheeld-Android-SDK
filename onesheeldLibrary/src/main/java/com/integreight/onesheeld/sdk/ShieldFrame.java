@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Represents a shield frame with 1Sheeld protocol.
+ */
 public class ShieldFrame {
     static final byte START_OF_FRAME = (byte) 0xFF;
     static final byte END_OF_FRAME = (byte) 0x00;
@@ -15,73 +18,131 @@ public class ShieldFrame {
     private byte functionId;
     private ArrayList<byte[]> arguments;
 
+    /**
+     * Instantiates a new <tt>ShieldFrame</tt>.
+     *
+     * @param shieldId   the shield id
+     * @param instanceId the instance id
+     * @param functionId the function id
+     */
     public ShieldFrame(byte shieldId, byte instanceId, byte functionId) {
         this.shieldId = shieldId;
         this.instanceId = instanceId;
         this.functionId = functionId;
-        arguments = new ArrayList<byte[]>();
+        arguments = new ArrayList<>();
     }
 
+    /**
+     * Instantiates a new <tt>ShieldFrame</tt>.
+     *
+     * @param shieldId   the shield id
+     * @param functionId the function id
+     */
     public ShieldFrame(byte shieldId, byte functionId) {
         this.shieldId = shieldId;
         this.instanceId = 0;
         this.functionId = functionId;
-        arguments = new ArrayList<byte[]>();
+        arguments = new ArrayList<>();
     }
 
+    /**
+     * Instantiates a new <tt>ShieldFrame</tt>.
+     *
+     * @param shieldId the shield id
+     */
     public ShieldFrame(byte shieldId) {
         this.shieldId = shieldId;
         this.instanceId = 0;
         this.functionId = 0;
-        arguments = new ArrayList<byte[]>();
+        arguments = new ArrayList<>();
     }
 
+    /**
+     * Gets the shield id.
+     *
+     * @return the shield id
+     */
     public byte getShieldId() {
         return shieldId;
     }
 
+    /**
+     * Gets the instance id.
+     *
+     * @return the instance id
+     */
     public byte getInstanceId() {
         return instanceId;
     }
 
+    /**
+     * Gets the function id.
+     *
+     * @return the function id
+     */
     public byte getFunctionId() {
         return functionId;
     }
 
+    /**
+     * Gets a list of all arguments.
+     *
+     * @return the arguments
+     */
     public List<byte[]> getArguments() {
         return arguments;
     }
 
-    public byte[] getArgument(int n) {
-        if (n >= arguments.size())
+    /**
+     * Gets a specific argument.
+     *
+     * @param argNo the argument number
+     * @return a byte array or null if the argument is not found.
+     */
+    public byte[] getArgument(int argNo) {
+        if (argNo >= arguments.size())
             return null;
-        return arguments.get(n);
+        return arguments.get(argNo);
     }
 
-    public String getArgumentAsString(int n) {
-        if (n >= arguments.size())
+    /**
+     * Parses a specific argument as a string and return it.
+     *
+     * @param argNo the argument number
+     * @return a string or null if the argument is not found.
+     */
+    public String getArgumentAsString(int argNo) {
+        if (argNo >= arguments.size())
             return null;
-        return new String(arguments.get(n));
+        return new String(arguments.get(argNo));
     }
 
-    public int getArgumentAsInteger(int bytes, int n) {
-        if (n >= arguments.size() && (bytes > 4 || bytes < 1) && arguments.get(n).length != bytes)
+    /**
+     * Parses a specific argument as an integer and return it.
+     *
+     * @param argNo the argument number
+     * @return the argument as integer or 0 if the argument is not found or the arguments bytes > 4.
+     */
+    public int getArgumentAsInteger(int argNo) {
+        if (argNo >= arguments.size() || arguments.get(argNo).length > 4)
             return 0;
         int value = 0;
-        for (int i = 0; i < bytes; i++) {
-            value |= ((arguments.get(n)[i] << (8 * i)) & ((0xFF) << (8 * i)));
+        for (int i = 0; i < arguments.get(argNo).length; i++) {
+            value |= ((arguments.get(argNo)[i] << (8 * i)) & ((0xFF) << (8 * i)));
         }
         return value;
     }
 
-    public int getArgumentAsInteger(int n) {
-        return getArgumentAsInteger(2, n);
-    }
-
-    public float getArgumentAsFloat(int n) {
-        byte[] b = getArgument(n);
-        if (n >= arguments.size() || b.length != 4)
+    /**
+     * Parses a specific argument as a float and return it.
+     *
+     * @param argNo the argument number
+     * @return the argument as float or 0 if the argument is not found or the arguments bytes != 4.
+     */
+    public float getArgumentAsFloat(int argNo) {
+        if (argNo >= arguments.size() || arguments.get(argNo).length != 4)
             return 0;
+        byte[] b = getArgument(argNo);
         for (int i = 0; i < b.length / 2; i++) {
             byte temp = b[i];
             b[i] = b[b.length - i - 1];
@@ -90,22 +151,48 @@ public class ShieldFrame {
         return ByteBuffer.wrap(b).getFloat();
     }
 
+    /**
+     * Adds a new bytes array argument.
+     *
+     * @param argument the argument
+     */
     public void addArgument(byte[] argument) {
         arguments.add(Arrays.copyOfRange(argument, 0, (argument.length > 255) ? 255 : argument.length));
     }
 
+    /**
+     * Adds a new byte argument.
+     *
+     * @param data the data
+     */
     public void addArgument(byte data) {
         arguments.add(new byte[]{data});
     }
 
+    /**
+     * Adds a new character argument.
+     *
+     * @param data the data
+     */
     public void addArgument(char data) {
         arguments.add(new byte[]{(byte) data});
     }
 
+    /**
+     * Adds a new boolean argument.
+     *
+     * @param data the data
+     */
     public void addArgument(boolean data) {
         arguments.add(new byte[]{(byte) (data ? 1 : 0)});
     }
 
+    /**
+     * Adds a new integer argument.
+     *
+     * @param bytes the number of bytes to be added from the integer
+     * @param data  the data
+     */
     public void addArgument(int bytes, int data) {
         switch (bytes) {
             case 0:
@@ -124,27 +211,44 @@ public class ShieldFrame {
                 arguments.add(new byte[]{(byte) data, (byte) (data >> 8),
                         (byte) (data >> 16), (byte) (data >>> 24)});
                 break;
-            default:
-                return;
         }
     }
 
-    public void addArgument(float f) {
-        byte[] data = ByteBuffer.allocate(4).putFloat(f).array();
+    /**
+     * Adds a new integer argument.
+     *
+     * @param floatNumber the float number
+     */
+    public void addArgument(float floatNumber) {
+        byte[] data = ByteBuffer.allocate(4).putFloat(floatNumber).array();
         arguments.add(new byte[]{data[3], data[2], data[1], data[0]});
 
     }
 
+    /**
+     * Adds a new string argument.
+     *
+     * @param data the data
+     */
     public void addArgument(String data) {
         String temp = (data.length() > 255) ? data.substring(0, 255) : data;
         arguments.add(temp.getBytes(Charset.forName("UTF-8")));
     }
 
+    /**
+     * Gets the <tt>ShieldFrame</tt> as a hex string.
+     *
+     */
     @Override
     public String toString() {
         return ArrayUtils.toHexString(getAllFrameAsBytes());
     }
 
+    /**
+     * Get all frame as a raw byte array.
+     *
+     * @return a raw byte array
+     */
     public byte[] getAllFrameAsBytes() {
         int totalSizeOfArguments = 0;
         for (byte[] argument : arguments) {

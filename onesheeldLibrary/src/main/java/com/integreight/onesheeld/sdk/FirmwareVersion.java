@@ -1,5 +1,8 @@
 package com.integreight.onesheeld.sdk;
 
+/**
+ * Represents a valid firmware version for 1Sheeld device.
+ */
 public class FirmwareVersion {
     private int majorVersion;
     private int minorVersion;
@@ -9,10 +12,20 @@ public class FirmwareVersion {
         this.minorVersion = minorVersion;
     }
 
+    /**
+     * Gets the major version component of the firmware version.
+     *
+     * @return the major version
+     */
     public int getMajorVersion() {
         return majorVersion;
     }
 
+    /**
+     * Gets the minor version component of the firmware version.
+     *
+     * @return the minor version
+     */
     public int getMinorVersion() {
         return minorVersion;
     }

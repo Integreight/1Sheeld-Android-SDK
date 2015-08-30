@@ -1,5 +1,12 @@
 package com.integreight.onesheeld.sdk;
 
+/**
+ * Represents a known argument for a {@link KnownFunction} of {@link KnownShield}.
+ * @see KnownShields
+ * @see ArgumentType
+ * @see KnownShield
+ * @see KnownFunction
+ */
 public class KnownArgument {
     private String name;
     private ArgumentType type;
@@ -44,26 +51,57 @@ public class KnownArgument {
         this.canBeMultiple = canBeMultiple;
     }
 
+    /**
+     * Gets the name of the argument.
+     *
+     * @return the name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Gets the type of the argument.
+     *
+     * @return the type
+     * @see ArgumentType
+     */
     public ArgumentType getType() {
         return type;
     }
 
+    /**
+     * Gets the length of the argument's bytes.
+     *
+     * @return the length
+     */
     public int getLength() {
         return length;
     }
 
+    /**
+     * Checks whether this argument has a fixed byte length or not.
+     *
+     * @return the boolean
+     */
     public boolean isVariableLength() {
         return isVariableLength;
     }
 
+    /**
+     * Checks whether this argument is optional in the {@link KnownFunction} or not.
+     *
+     * @return the boolean
+     */
     public boolean isOptional() {
         return isOptional;
     }
 
+    /**
+     * Checks whether this argument can be repeated multipe times in the {@link KnownFunction} or not.
+     *
+     * @return the boolean
+     */
     public boolean canBeMultiple() {
         return canBeMultiple;
     }

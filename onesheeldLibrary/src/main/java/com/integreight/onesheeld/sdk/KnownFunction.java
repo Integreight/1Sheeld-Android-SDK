@@ -3,6 +3,13 @@ package com.integreight.onesheeld.sdk;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Represents a known function of a {@link KnownShield}.
+ * @see KnownShields
+ * @see ArgumentType
+ * @see KnownShield
+ * @see KnownArgument
+ */
 public class KnownFunction {
     private byte id;
     private String name;
@@ -14,22 +21,50 @@ public class KnownFunction {
         this.knownArguments = knownArguments;
     }
 
+    /**
+     * Gets a new <tt>KnownFunction</tt> with a specific id.
+     * <p>Should be used for checking equality with another <tt>KnownFunction</tt></p>
+     *
+     * @param id the id of the new <tt>KnownFunction</tt>
+     * @return a new object of <tt>KnownFunction</tt>
+     */
     public static KnownFunction getFunctionWithId(byte id) {
         return new KnownFunction(id, null, null);
     }
 
+    /**
+     * Gets the id of the function.
+     *
+     * @return the id
+     */
     public byte getId() {
         return id;
     }
 
+    /**
+     * Gets the name of the function.
+     *
+     * @return the name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Gets a list of {@link KnownArgument}s for this function.
+     *
+     * @return a list of {@link KnownArgument}s
+     * @see KnownArgument
+     */
     public List<KnownArgument> getKnownArguments() {
         return Collections.unmodifiableList(knownArguments);
     }
 
+    /**
+     * Checks whether this function has any argument with variable length.
+     *
+     * @return the boolean
+     */
     public boolean hasVariableLengthArguments() {
         if (knownArguments != null) {
             for (KnownArgument arg : knownArguments) {
@@ -39,6 +74,11 @@ public class KnownFunction {
         } else return false;
     }
 
+    /**
+     * Checks whether this function has a variable number of arguments.
+     *
+     * @return the boolean
+     */
     public boolean hasVariableArgumentsNumber() {
         if (knownArguments != null) {
             for (KnownArgument arg : knownArguments) {

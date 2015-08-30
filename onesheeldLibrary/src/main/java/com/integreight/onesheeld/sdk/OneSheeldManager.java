@@ -17,6 +17,11 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * Represents the manager that is responsible for all Bluetooth operations.
+ * <p>It is responsible for scanning and connecting to 1Sheeld devices.</p>
+ * @see OneSheeldDevice
+ */
 public class OneSheeldManager {
     private static OneSheeldManager instance = null;
     private final Object currentStateLock = new Object();
@@ -72,6 +77,12 @@ public class OneSheeldManager {
         return instance;
     }
 
+    /**
+     * Starts a Bluetooth scanning for 1Sheeld devices.
+     * @throws SdkNotInitializedException if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
+     * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
+     * @throws BluetoothNotSupportedException if the Android device doesn't support Bluetooth.
+     */
     public void scan() {
         Log.d("Manager: Bluetooth scanning requested.");
         if (!handleBluetoothErrors()) {
@@ -79,32 +90,58 @@ public class OneSheeldManager {
         } else Log.d("Manager: Unable to initiate Bluetooth scanning, an error occurred.");
     }
 
+    /**
+     * Gets the retry count.
+     *
+     * @return the retry count
+     */
     public int getRetryCount() {
         return retryCount;
     }
 
+    /**
+     * Sets retry count value.
+     * <p>default value is 0</p>
+     * @param retryCount the new retry count value.
+     */
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
     }
 
+    /**
+     * Gets scanning time out value.
+     *
+     * @return the scanning time out value
+     */
     public int getScanningTimeOut() {
         return scanningTimeOutValue;
     }
 
+    /**
+     * Sets scanning time out value.
+     * <p>default value is 20 seconds</p>
+     *
+     * @param scanningTimeOut the scanning time out value in seconds.
+     */
     public void setScanningTimeOut(int scanningTimeOut) {
         this.scanningTimeOutValue = scanningTimeOut;
     }
 
-    public ConnectionState getCurrentState() {
-        synchronized (currentStateLock) {
-            return currentState;
-        }
-    }
-
+    /**
+     * Broadcast raw serial data to all connected devices on their 0,1 pins.
+     *
+     * @param data the data
+     */
     public void broadcastSerialData(byte[] data) {
         broadcastSerialData(data, null);
     }
 
+    /**
+     * Broadcast raw serial data to all connected devices on their 0,1 pins except the ones provided.
+     *
+     * @param data the data
+     * @param exceptionArray the excepted devices array
+     */
     public void broadcastSerialData(byte[] data, OneSheeldDevice exceptionArray[]) {
         Log.d("Manager: Broadcasting serial data to all connected devices.");
         ArrayList<OneSheeldDevice> tempConnectedDevices;
@@ -123,18 +160,42 @@ public class OneSheeldManager {
         }
     }
 
+    /**
+     * Broadcast a shield frame to all connected devices on their 0,1 pins.
+     *
+     * @param frame the frame
+     */
     public void broadcastShieldFrame(ShieldFrame frame) {
         broadcastShieldFrame(frame, null);
     }
 
+    /**
+     * Broadcast a shield frame to all connected devices on their 0,1 pins except the ones provided.
+     *
+     * @param frame the frame
+     * @param exceptionArray the excepted devices array
+     */
     public void broadcastShieldFrame(ShieldFrame frame, OneSheeldDevice exceptionArray[]) {
         broadcastShieldFrame(frame, false, exceptionArray);
     }
 
+    /**
+     * Broadcast a shield frame to all connected devices on their 0,1 pins.
+     *
+     * @param frame the frame
+     * @param waitIfInACallback if true the frame will be queued if the Arduino is in a callback
+     */
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
         broadcastShieldFrame(frame, waitIfInACallback, null);
     }
 
+    /**
+     * Broadcast a shield frame to all connected devices on their 0,1 pins except the ones provided.
+     *
+     * @param frame the frame
+     * @param waitIfInACallback if true the frame will be queued if the Arduino is in a callback
+     * @param exceptionArray the excepted devices array
+     */
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback, OneSheeldDevice exceptionArray[]) {
         Log.d("Manager: Broadcasting frame to all connected devices.");
         ArrayList<OneSheeldDevice> tempConnectedDevices;
@@ -153,38 +214,73 @@ public class OneSheeldManager {
         }
     }
 
+    /**
+     * Is the manager scanning.
+     *
+     * @return the boolean
+     */
     public boolean isScanning() {
         synchronized (currentStateLock) {
             return currentState == ConnectionState.SCANNING;
         }
     }
 
+    /**
+     * Is the manager ready for scanning or connection.
+     *
+     * @return the boolean
+     */
     public boolean isReady() {
         synchronized (currentStateLock) {
             return currentState == ConnectionState.READY;
         }
     }
 
+    /**
+     * Is the manager connecting to a device.
+     *
+     * @return the boolean
+     */
     public boolean isConnecting() {
         synchronized (currentStateLock) {
             return currentState == ConnectionState.CONNECTING;
         }
     }
 
+    /**
+     * Is automatic connecting retries enabled.
+     *
+     * @return the boolean
+     */
     public boolean isAutomaticConnectingRetriesEnabled() {
         return isAutomaticConnectingRetriesEnabled;
     }
 
+    /**
+     * Sets the automatic connecting retries.
+     * <p>If set, the manager will try 3 different methods of connection for each connection attempt.</p>
+     * <p>default value is false.</p>
+     *
+     * @param value the value
+     */
     public void setAutomaticConnectingRetries(boolean value) {
         isAutomaticConnectingRetriesEnabled = value;
     }
 
+    /**
+     * Gets a list of connected devices.
+     *
+     * @return an unmodifiable list of connected devices
+     */
     public List<OneSheeldDevice> getConnectedDevices() {
         synchronized (connectedDevicesLock) {
             return Collections.unmodifiableList(new ArrayList<>(connectedDevices.values()));
         }
     }
 
+    /**
+     * Disconnect all connected devices.
+     */
     public void disconnectAll() {
         Log.d("Manager: Disconnect all connected devices.");
         ArrayList<OneSheeldDevice> tempConnectedDevices;
@@ -196,8 +292,13 @@ public class OneSheeldManager {
         }
     }
 
+    /**
+     * Disconnect a specific device.
+     *
+     * @param device the device
+     */
     public void disconnect(OneSheeldDevice device) {
-        Log.d("Manager: Delegate the disconnection from " + device.getName() + " to the device.");
+        Log.d("Manager: Delegate the disconnection from " + device.getName() + " to the device itself.");
         device.disconnect();
     }
 
@@ -226,6 +327,9 @@ public class OneSheeldManager {
         if (scanningTimeOut != null) scanningTimeOut.resetTimer();
     }
 
+    /**
+     * Cancel any pending connection operations.
+     */
     public void cancelConnecting() {
         boolean isConnecting = false;
         synchronized (currentStateLock) {
@@ -295,6 +399,14 @@ public class OneSheeldManager {
         }
     }
 
+    /**
+     * Connect to a new device.
+     *
+     * @param device the device
+     * @throws SdkNotInitializedException if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
+     * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
+     * @throws BluetoothNotSupportedException if the Android device doesn't support Bluetooth.
+     */
     public void connect(OneSheeldDevice device) {
         if (device != null) {
             Log.d("Manager: Connection request to " + device.getName() + " received.");
@@ -303,7 +415,7 @@ public class OneSheeldManager {
             } else
                 Log.d("Unable to initiate connection to " + device.getName() + ", an error occurred.");
         } else
-            throw new NullOneSheeldDeviceException("OneSheeldDevice is null, have you checked its validity?");
+            throw new NullPointerException("The passed device is null, have you checked its validity?");
     }
 
     private synchronized void onConnectionError(OneSheeldDevice device) {
@@ -353,16 +465,19 @@ public class OneSheeldManager {
             throw new SdkNotInitializedException("1Sheeld SDK not initialized. Have you called OneSheeldSdk.init()?");
         } else if (OneSheeldSdk.getContext() != null && (OneSheeldSdk.getContext().checkCallingOrSelfPermission("android.permission.BLUETOOTH") !=
                 PackageManager.PERMISSION_GRANTED || OneSheeldSdk.getContext().checkCallingOrSelfPermission("android.permission.BLUETOOTH_ADMIN") != PackageManager.PERMISSION_GRANTED)) {
-            throw new MissingBluetoothPermmissionsException("Bluetooth permissions are missing. Have you added them to the manifest?");
+            throw new MissingBluetoothPermissionsException("Bluetooth permissions are missing. Have you added them to the manifest?");
         } else if (!BluetoothUtils.doesDeviceHasBluetooth()) {
             throw new BluetoothNotSupportedException("The device doesn't support Bluetooth. Are you sure you ran it on the correct device?");
         } else if (!BluetoothUtils.isBluetoothEnabled()) {
+            Log.d("Manager: Bluetooth was not enabled, aborting.");
             onError(null, OneSheeldError.BLUETOOTH_NOT_ENABLED);
             return true;
         } else if (state != ConnectionState.READY) {
             if (state == ConnectionState.CONNECTING) {
+                Log.d("Manager: There is a pending connection in progress, aborting.");
                 onError(null, OneSheeldError.PENDING_CONNECTION_IN_PROGRESS);
             } else if (state == ConnectionState.SCANNING) {
+                Log.d("Manager: There is a scanning in progress, aborting.");
                 onError(null, OneSheeldError.SCANNING_IN_PROGRESS);
             }
             return true;
@@ -370,42 +485,82 @@ public class OneSheeldManager {
         return false;
     }
 
+    /**
+     * Add all of the manager callbacks in one method call.
+     *
+     * @param scanningCallback the scanning callback
+     * @param connectionCallback the connection callback
+     * @param errorCallback the error callback
+     */
     public void addCallbacks(OneSheeldScanningCallback scanningCallback, OneSheeldConnectionCallback connectionCallback, OneSheeldErrorCallback errorCallback) {
         addScanningCallback(scanningCallback);
         addConnectionCallback(connectionCallback);
         addErrorCallback(errorCallback);
     }
 
+    /**
+     * Add a connection callback.
+     *
+     * @param connectionCallback the connection callback
+     */
     public void addConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && !connectionCallbacks.contains(connectionCallback))
             connectionCallbacks.add(connectionCallback);
     }
 
+    /**
+     * Add a scanning callback.
+     *
+     * @param scanningCallback the scanning callback
+     */
     public void addScanningCallback(OneSheeldScanningCallback scanningCallback) {
         if (scanningCallback != null && !scanningCallbacks.contains(scanningCallback))
             scanningCallbacks.add(scanningCallback);
     }
 
+    /**
+     * Add an error callback.
+     *
+     * @param errorCallback the error callback
+     */
     public void addErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && !errorCallbacks.contains(errorCallback))
             errorCallbacks.add(errorCallback);
     }
 
+    /**
+     * Remove a connection callback.
+     *
+     * @param connectionCallback the connection callback
+     */
     public void removeConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && connectionCallbacks.contains(connectionCallback))
             connectionCallbacks.remove(connectionCallback);
     }
 
+    /**
+     * Remove a scanning callback.
+     *
+     * @param scanningCallback the scanning callback
+     */
     public void removeScanningCallback(OneSheeldScanningCallback scanningCallback) {
         if (scanningCallback != null && scanningCallbacks.contains(scanningCallback))
             scanningCallbacks.remove(scanningCallback);
     }
 
+    /**
+     * Remove an error callback.
+     *
+     * @param errorCallback the error callback
+     */
     public void removeErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && errorCallbacks.contains(errorCallback))
             errorCallbacks.remove(errorCallback);
     }
 
+    /**
+     * Cancel an pending scanning operations.
+     */
     public void cancelScanning() {
         finishScanning();
     }
