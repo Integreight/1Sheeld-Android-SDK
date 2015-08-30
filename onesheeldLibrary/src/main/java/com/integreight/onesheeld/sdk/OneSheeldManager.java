@@ -36,6 +36,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Represents the manager that is responsible for all Bluetooth operations.
  * <p>It is responsible for scanning and connecting to 1Sheeld devices.</p>
+ *
  * @see OneSheeldDevice
  */
 public class OneSheeldManager {
@@ -95,9 +96,10 @@ public class OneSheeldManager {
 
     /**
      * Starts a Bluetooth scanning for 1Sheeld devices.
-     * @throws SdkNotInitializedException if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
+     *
+     * @throws SdkNotInitializedException           if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
      * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
-     * @throws BluetoothNotSupportedException if the Android device doesn't support Bluetooth.
+     * @throws BluetoothNotSupportedException       if the Android device doesn't support Bluetooth.
      */
     public void scan() {
         Log.d("Manager: Bluetooth scanning requested.");
@@ -118,6 +120,7 @@ public class OneSheeldManager {
     /**
      * Sets retry count value.
      * <p>default value is 0</p>
+     *
      * @param retryCount the new retry count value.
      */
     public void setRetryCount(int retryCount) {
@@ -155,10 +158,13 @@ public class OneSheeldManager {
     /**
      * Broadcast raw serial data to all connected devices on their 0,1 pins except the ones provided.
      *
-     * @param data the data
+     * @param data           the data
      * @param exceptionArray the excepted devices array
+     * @throws NullPointerException if the passed data array is null
      */
     public void broadcastSerialData(byte[] data, OneSheeldDevice exceptionArray[]) {
+        if (data == null)
+            throw new NullPointerException("The passed data array is null, have you checked its validity?");
         Log.d("Manager: Broadcasting serial data to all connected devices.");
         ArrayList<OneSheeldDevice> tempConnectedDevices;
         synchronized (connectedDevicesLock) {
@@ -188,7 +194,7 @@ public class OneSheeldManager {
     /**
      * Broadcast a shield frame to all connected devices on their 0,1 pins except the ones provided.
      *
-     * @param frame the frame
+     * @param frame          the frame
      * @param exceptionArray the excepted devices array
      */
     public void broadcastShieldFrame(ShieldFrame frame, OneSheeldDevice exceptionArray[]) {
@@ -198,7 +204,7 @@ public class OneSheeldManager {
     /**
      * Broadcast a shield frame to all connected devices on their 0,1 pins.
      *
-     * @param frame the frame
+     * @param frame             the frame
      * @param waitIfInACallback if true the frame will be queued if the Arduino is in a callback
      */
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
@@ -208,11 +214,14 @@ public class OneSheeldManager {
     /**
      * Broadcast a shield frame to all connected devices on their 0,1 pins except the ones provided.
      *
-     * @param frame the frame
+     * @param frame             the frame
      * @param waitIfInACallback if true the frame will be queued if the Arduino is in a callback
-     * @param exceptionArray the excepted devices array
+     * @param exceptionArray    the excepted devices array
+     * @throws NullPointerException if passed frame is null
      */
     public void broadcastShieldFrame(ShieldFrame frame, boolean waitIfInACallback, OneSheeldDevice exceptionArray[]) {
+        if (frame == null)
+            throw new NullPointerException("The passed frame is null, have you checked its validity?");
         Log.d("Manager: Broadcasting frame to all connected devices.");
         ArrayList<OneSheeldDevice> tempConnectedDevices;
         synchronized (connectedDevicesLock) {
@@ -312,8 +321,11 @@ public class OneSheeldManager {
      * Disconnect a specific device.
      *
      * @param device the device
+     * @throws NullPointerException if the passed device is null
      */
     public void disconnect(OneSheeldDevice device) {
+        if (device == null)
+            throw new NullPointerException("The passed device is null, have you checked its validity?");
         Log.d("Manager: Delegate the disconnection from " + device.getName() + " to the device itself.");
         device.disconnect();
     }
@@ -419,19 +431,19 @@ public class OneSheeldManager {
      * Connect to a new device.
      *
      * @param device the device
-     * @throws SdkNotInitializedException if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
+     * @throws SdkNotInitializedException           if the <tt>OneSheeldSdk.init()</tt> hasn't been called.
      * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
-     * @throws BluetoothNotSupportedException if the Android device doesn't support Bluetooth.
+     * @throws BluetoothNotSupportedException       if the Android device doesn't support Bluetooth.
+     * @throws NullPointerException if the device is null
      */
     public void connect(OneSheeldDevice device) {
-        if (device != null) {
-            Log.d("Manager: Connection request to " + device.getName() + " received.");
-            if (!handleBluetoothErrors()) {
-                startConnection(device);
-            } else
-                Log.d("Unable to initiate connection to " + device.getName() + ", an error occurred.");
-        } else
+        if (device == null)
             throw new NullPointerException("The passed device is null, have you checked its validity?");
+        Log.d("Manager: Connection request to " + device.getName() + " received.");
+        if (!handleBluetoothErrors()) {
+            startConnection(device);
+        } else
+            Log.d("Unable to initiate connection to " + device.getName() + ", an error occurred.");
     }
 
     private synchronized void onConnectionError(OneSheeldDevice device) {
@@ -504,9 +516,9 @@ public class OneSheeldManager {
     /**
      * Add all of the manager callbacks in one method call.
      *
-     * @param scanningCallback the scanning callback
+     * @param scanningCallback   the scanning callback
      * @param connectionCallback the connection callback
-     * @param errorCallback the error callback
+     * @param errorCallback      the error callback
      */
     public void addCallbacks(OneSheeldScanningCallback scanningCallback, OneSheeldConnectionCallback connectionCallback, OneSheeldErrorCallback errorCallback) {
         addScanningCallback(scanningCallback);

@@ -457,8 +457,10 @@ public class OneSheeldDevice {
      * Explicitly Queue a shield frame for sending after the Arduino exits the callback.
      *
      * @param frame the frame
+     * @throws NullPointerException if the passed frame is null
      */
     public void queueShieldFrame(ShieldFrame frame) {
+        if(frame==null)throw new NullPointerException("The passed frame is null, have you checked its validity?");
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
@@ -530,8 +532,10 @@ public class OneSheeldDevice {
      *
      * @param frame the frame
      * @param waitIfInACallback if true the frame will be queued till Arduino exits its callback
+     * @throws NullPointerException if passed frame is null
      */
     public void sendShieldFrame(ShieldFrame frame, boolean waitIfInACallback) {
+        if(frame==null)throw new NullPointerException("The passed frame is null, have you checked its validity?");
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
@@ -563,6 +567,7 @@ public class OneSheeldDevice {
      * Send shield frame without waiting.
      *
      * @param frame the frame
+     * @throws NullPointerException if passed frame is null
      */
     public void sendShieldFrame(ShieldFrame frame) {
         sendShieldFrame(frame, false);
@@ -585,8 +590,11 @@ public class OneSheeldDevice {
      * Send raw serial data.
      *
      * @param data the data
+     * @throws NullPointerException if the passed data array is null
      */
     public void sendSerialData(byte[] data) {
+        if(data==null)throw new NullPointerException("The passed data is null, have you checked its validity?");
+
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;

@@ -59,7 +59,7 @@ public class KnownShield {
      * Gets a list of {@link KnownFunction}s for this shield.
      *
      * @return a list of {@link KnownFunction}s
-     * @see KnownFunctionW
+     * @see KnownFunction
      */
     public List<KnownFunction> getKnownFunctions() {
         return Collections.unmodifiableList(knownFunctions);

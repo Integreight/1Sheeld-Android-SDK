@@ -116,7 +116,7 @@ public class ShieldFrame {
      * @return a byte array or null if the argument is not found.
      */
     public byte[] getArgument(int argNo) {
-        if (argNo >= arguments.size())
+        if (argNo < 0 || argNo >= arguments.size())
             return null;
         return arguments.get(argNo);
     }
@@ -128,7 +128,7 @@ public class ShieldFrame {
      * @return a string or null if the argument is not found.
      */
     public String getArgumentAsString(int argNo) {
-        if (argNo >= arguments.size())
+        if (argNo < 0 || argNo >= arguments.size())
             return null;
         return new String(arguments.get(argNo));
     }
@@ -140,7 +140,7 @@ public class ShieldFrame {
      * @return the argument as integer or 0 if the argument is not found or the arguments bytes > 4.
      */
     public int getArgumentAsInteger(int argNo) {
-        if (argNo >= arguments.size() || arguments.get(argNo).length > 4)
+        if (argNo < 0 || argNo >= arguments.size() || arguments.get(argNo).length > 4)
             return 0;
         int value = 0;
         for (int i = 0; i < arguments.get(argNo).length; i++) {
@@ -156,7 +156,7 @@ public class ShieldFrame {
      * @return the argument as float or 0 if the argument is not found or the arguments bytes != 4.
      */
     public float getArgumentAsFloat(int argNo) {
-        if (argNo >= arguments.size() || arguments.get(argNo).length != 4)
+        if (argNo < 0 || argNo >= arguments.size() || arguments.get(argNo).length != 4)
             return 0;
         byte[] b = getArgument(argNo);
         for (int i = 0; i < b.length / 2; i++) {
@@ -171,8 +171,10 @@ public class ShieldFrame {
      * Adds a new bytes array argument.
      *
      * @param argument the argument
+     * @throws NullPointerException if the argument is null
      */
     public void addArgument(byte[] argument) {
+        if(argument==null)throw new NullPointerException("The passed argument is null, have you checked its validity?");
         arguments.add(Arrays.copyOfRange(argument, 0, (argument.length > 255) ? 255 : argument.length));
     }
 
@@ -245,15 +247,16 @@ public class ShieldFrame {
      * Adds a new string argument.
      *
      * @param data the data
+     * @throws NullPointerException if the passed data is null
      */
     public void addArgument(String data) {
+        if(data==null)throw new NullPointerException("The passed string is null, have you checked its validity?");
         String temp = (data.length() > 255) ? data.substring(0, 255) : data;
         arguments.add(temp.getBytes(Charset.forName("UTF-8")));
     }
 
     /**
      * Gets the <tt>ShieldFrame</tt> as a hex string.
-     *
      */
     @Override
     public String toString() {
