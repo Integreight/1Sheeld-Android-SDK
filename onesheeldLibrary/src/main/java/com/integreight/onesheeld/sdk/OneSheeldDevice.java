@@ -1116,7 +1116,7 @@ public class OneSheeldDevice {
             }
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
-            setName("OneSheeldConnectedThread: " + socket.getRemoteDevice().getAddress());
+            setName("OneSheeldConnectedReadThread: " + OneSheeldDevice.this.getName());
         }
 
         @Override
@@ -1133,6 +1133,7 @@ public class OneSheeldDevice {
                     Looper.loop();
                 }
             });
+            LooperThread.setName("OneSheeldConnectedWriteThread: " + OneSheeldDevice.this.getName());
             LooperThread.start();
             while (!LooperThread.isAlive()) ;
             synchronized (isConnectedLock) {
@@ -1202,6 +1203,7 @@ public class OneSheeldDevice {
 
     private class BluetoothBufferListeningThread extends Thread {
         BluetoothBufferListeningThread() {
+            setName("BluetoothBufferListeningThread: " + OneSheeldDevice.this.getName());
             start();
         }
 
@@ -1226,6 +1228,7 @@ public class OneSheeldDevice {
 
     private class SerialBufferListeningThread extends Thread {
         SerialBufferListeningThread() {
+            setName("SerialBufferListeningThread: " + OneSheeldDevice.this.getName());
             start();
         }
 
