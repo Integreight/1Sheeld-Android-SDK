@@ -979,6 +979,9 @@ public class OneSheeldDevice {
                         if (sysexCommand == SERIAL_DATA) {
                             for (byte b : fixedSysexData) {
                                 serialBuffer.add(b);
+                                for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+                                    oneSheeldDataCallback.onSerialDataReceive(b & 0xFF);
+                                }
                             }
                         } else if (sysexCommand == BLUETOOTH_RESET) {
                             byte randomVal = (byte) (Math.random() * 255);
@@ -1210,9 +1213,6 @@ public class OneSheeldDevice {
                 try {
                     input = readByteFromBluetoothBuffer();
                     processInput((byte) input);
-                    for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                        oneSheeldDataCallback.onSerialDataReceive(input);
-                    }
                 } catch (InterruptedException e) {
                     return;
                 }
