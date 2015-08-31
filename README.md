@@ -104,8 +104,6 @@ Then initialize the SDK in the onCreate() method of your application class or ma
   manager.addConnectionCallback(connectionCallback);
   manager.addScanningCallback(scanningCallback);
   manager.scan();
-
-}
 ```
 
 ## Building The SDK ##
