@@ -1,5 +1,29 @@
 apply plugin: 'com.android.library'
 
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'android-sdk'
+
+    publishedGroupId = 'com.integreight.onesheeld.sdk'
+    libraryName = '1Sheeld Android SDK'
+    artifact = 'android-sdk'
+
+    libraryDescription = 'The 1Sheeld SDK for Android is a library that allows you to scan, connect and interact with 1Sheeld boards through your custom Android app.'
+
+    siteUrl = 'https://github.com/Integreight/1Sheeld-Android-SDK'
+    gitUrl = 'https://github.com/Integreight/1Sheeld-Android-SDK.git'
+
+    libraryVersion = '1.0.0'
+
+    developerId = 'integreight'
+    developerName = 'Integreight, Inc.'
+    developerEmail = 'info@integreight.com'
+
+    licenseName = 'GNU Lesser General Public License, Version 3.0'
+    licenseUrl = 'http://www.gnu.org/licenses/lgpl-3.0.en.html'
+    allLicenses = ["LGPL-3.0"]
+}
+
 android {
     compileSdkVersion 21
     buildToolsVersion "21.1.1"
@@ -21,3 +45,7 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
+
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
+
