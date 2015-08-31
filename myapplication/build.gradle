@@ -8,8 +8,8 @@ android {
         applicationId "com.integreight.onesheeld.myapplication"
         minSdkVersion 9
         targetSdkVersion 21
-        versionCode 1
-        versionName "1.0"
+        versionCode 150831
+        versionName "1.0.0"
     }
     buildTypes {
         release {
