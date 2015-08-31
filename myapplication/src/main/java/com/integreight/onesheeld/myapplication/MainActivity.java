@@ -28,8 +28,8 @@ import com.integreight.onesheeld.sdk.ShieldFrame;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class MainActivity extends ActionBarActivity {
+    Button connect,disconnect;
     TextView sheeld_name;
     ListView connectedListView, scannedListView;
     Spinner pins;
@@ -45,6 +45,7 @@ public class MainActivity extends ActionBarActivity {
     private boolean digitalWriteState = false;
 
     public void onClickScan(View v) {
+        scanningProgressDialog.show();
         OneSheeldSdk.getManager().setScanningTimeOut(20);
         OneSheeldSdk.getManager().cancelScanning();
         scannedDevices.clear();
@@ -52,16 +53,15 @@ public class MainActivity extends ActionBarActivity {
         oneSheeldScannedDevices.clear();
         OneSheeldSdk.getManager().scan();
 //        scanningProgressDialog = ProgressDialog.show(this,"Scanning..","Please wait");
-        scanningProgressDialog.show();
     }
 
     public void onClickConnect(View v) {
         if (selectedScanedDevice != null) {
             OneSheeldSdk.getManager().cancelScanning();
-            selectedScanedDevice.connect();
-//            scanningProgressDialog = ProgressDialog.show(this,"Connecting..","Please wait while connecting to "+selectedScanedDevice.getName());
             connectionProgressDialog.setMessage("Please wait while connecting to " + selectedScanedDevice.getName());
             connectionProgressDialog.show();
+            selectedScanedDevice.connect();
+//            scanningProgressDialog = ProgressDialog.show(this,"Connecting..","Please wait while connecting to "+selectedScanedDevice.getName());
         }
     }
 
@@ -87,15 +87,26 @@ public class MainActivity extends ActionBarActivity {
             ((Button) v).setText("DigitalRead (" + selectedConnectedDevice.digitalRead(pins.getSelectedItemPosition()) + ")");
     }
 
+    public void onClickSendOnFrame(View v){
+        if (selectedConnectedDevice != null){
+            ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+            sf.addArgument(true);
+            selectedConnectedDevice.sendShieldFrame(sf);
+        }
+    }
+
+    public void onClickSendOffFrame(View v){
+        if (selectedConnectedDevice != null){
+            ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+            sf.addArgument(false);
+            selectedConnectedDevice.sendShieldFrame(sf);
+        }
+    }
+
     public void onClickBroadcastOn(View v) {
         ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
         sf.addArgument(true);
         OneSheeldSdk.getManager().broadcastShieldFrame(sf);
-    }
-
-    public void onClickDisconnectAll(View v) {
-        OneSheeldSdk.getManager().disconnectAll();
-        sheeldContainer.setVisibility(View.INVISIBLE);
     }
 
     public void onClickBroadcastOff(View v) {
@@ -104,12 +115,22 @@ public class MainActivity extends ActionBarActivity {
         OneSheeldSdk.getManager().broadcastShieldFrame(sf);
     }
 
+    public void onClickDisconnectAll(View v) {
+        OneSheeldSdk.getManager().disconnectAll();
+        sheeldContainer.setVisibility(View.INVISIBLE);
+        disconnect.setEnabled(false);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         sheeldContainer = (LinearLayout) findViewById(R.id.sheeld_container);
         sheeldContainer.setVisibility(View.INVISIBLE);
+        connect = (Button) findViewById(R.id.connect_sheeld);
+        disconnect = (Button) findViewById(R.id.disconnect_sheeld);
+        connect.setEnabled(false);
+        disconnect.setEnabled(false);
         connectedListView = (ListView) findViewById(R.id.connected_list);
         scannedListView = (ListView) findViewById(R.id.scanned_list);
         pins = (Spinner) findViewById(R.id.pin_number);
@@ -141,6 +162,7 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 selectedScanedDevice = oneSheeldScannedDevices.get(position);
+                connect.setEnabled(true);
             }
         });
         connectedListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -149,8 +171,10 @@ public class MainActivity extends ActionBarActivity {
                 selectedConnectedDevice = oneSheeldConnnectedDevices.get(position);
                 sheeld_name.setText(oneSheeldConnnectedDevices.get(position).getName());
                 sheeldContainer.setVisibility(View.VISIBLE);
+                disconnect.setEnabled(true);
             }
         });
+
         OneSheeldSdk.setDebugging(true);
         handler = new Handler() {
             String name;
@@ -165,6 +189,7 @@ public class MainActivity extends ActionBarActivity {
                             connectedDevicesArrayAdapter.notifyDataSetChanged();
                             scannedDevicesArrayAdapter.notifyDataSetChanged();
                         }
+                        connect.setEnabled(false);
                         break;
                     case MSG_DISCONNECT:
                         name = new String((String) msg.obj);
@@ -172,6 +197,7 @@ public class MainActivity extends ActionBarActivity {
                             connectedDevices.remove(name);
                             connectedDevicesArrayAdapter.notifyDataSetChanged();
                         }
+                        disconnect.setEnabled(false);
                         break;
                     case MSG_TOAST:
                         Toast.makeText(MainActivity.this, String.valueOf((String) msg.obj), Toast.LENGTH_LONG).show();
@@ -180,7 +206,7 @@ public class MainActivity extends ActionBarActivity {
         };
         OneSheeldSdk.init(this);
         OneSheeldSdk.getManager().setRetryCount(0);
-        OneSheeldSdk.getManager().setAutomaticConnectingRetries(false);
+        OneSheeldSdk.getManager().setAutomaticConnectingRetries(true);
 
         OneSheeldSdk.getManager().addCallbacks(new OneSheeldScanningCallback() {
             @Override
@@ -239,9 +265,12 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onError(OneSheeldDevice device, OneSheeldError error) {
                 Log.d("MainActivity", "Error: " + error.toString() + (device != null ? " in " + device.getName() : ""));
-                handler.obtainMessage(MSG_TOAST, "Error: " + error.toString() + (device != null ? " in " + device.getName() : "")).sendToTarget();
-                if (error == OneSheeldError.BLUETOOTH_CONNECTION_FAILED && connectionProgressDialog != null)
+                if (connectionProgressDialog != null)
                     connectionProgressDialog.dismiss();
+                if (scanningProgressDialog != null)
+                    scanningProgressDialog.dismiss();
+
+                handler.obtainMessage(MSG_TOAST, "Error: " + error.toString() + (device != null ? " in " + device.getName() : "")).sendToTarget();
             }
         });
 

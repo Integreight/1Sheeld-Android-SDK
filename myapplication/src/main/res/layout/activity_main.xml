@@ -161,6 +161,27 @@
             android:layout_height="wrap_content"
             android:onClick="onClickDigitalRead"
             android:text="Digital Read" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="2">
+
+            <Button
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickSendOnFrame"
+                android:text="Frame On"/>
+
+            <Button
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickSendOffFrame"
+                android:text="Frame Off"/>
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
