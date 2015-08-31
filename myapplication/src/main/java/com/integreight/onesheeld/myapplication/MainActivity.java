@@ -190,6 +190,8 @@ public class MainActivity extends ActionBarActivity {
                             scannedDevicesArrayAdapter.notifyDataSetChanged();
                         }
                         connect.setEnabled(false);
+                        disconnect.setEnabled(false);
+                        sheeldContainer.setVisibility(View.INVISIBLE);
                         break;
                     case MSG_DISCONNECT:
                         name = new String((String) msg.obj);
@@ -197,7 +199,9 @@ public class MainActivity extends ActionBarActivity {
                             connectedDevices.remove(name);
                             connectedDevicesArrayAdapter.notifyDataSetChanged();
                         }
+                        connect.setEnabled(false);
                         disconnect.setEnabled(false);
+                        sheeldContainer.setVisibility(View.INVISIBLE);
                         break;
                     case MSG_TOAST:
                         Toast.makeText(MainActivity.this, String.valueOf((String) msg.obj), Toast.LENGTH_LONG).show();
