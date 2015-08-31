@@ -1,1 +1,1 @@
-include 'sampleApplication', 'onesheeldLibrary'
+include 'sampleApplication', 'sdk'
