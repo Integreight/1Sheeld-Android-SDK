@@ -43,7 +43,7 @@ public class OneSheeldManager {
     private static OneSheeldManager instance = null;
     private final Object currentStateLock = new Object();
     private final Object connectedDevicesLock = new Object();
-    private int retryCount;
+    private int connectionRetryCount;
     private int scanningTimeOutValue;
     private TimeOut scanningTimeOut;
     private ConnectThread connectThread;
@@ -70,7 +70,7 @@ public class OneSheeldManager {
     };
 
     private OneSheeldManager() {
-        retryCount = 0;
+        connectionRetryCount = 0;
         connectionCallbacks = new CopyOnWriteArrayList<>();
         scanningCallbacks = new CopyOnWriteArrayList<>();
         errorCallbacks = new CopyOnWriteArrayList<>();
@@ -113,8 +113,8 @@ public class OneSheeldManager {
      *
      * @return the retry count
      */
-    public int getRetryCount() {
-        return retryCount;
+    public int getConnectionRetryCount() {
+        return connectionRetryCount;
     }
 
     /**
@@ -123,8 +123,8 @@ public class OneSheeldManager {
      *
      * @param retryCount the new retry count value.
      */
-    public void setRetryCount(int retryCount) {
-        this.retryCount = retryCount;
+    public void setConnectionRetryCount(int retryCount) {
+        this.connectionRetryCount = retryCount;
     }
 
     /**
@@ -729,7 +729,7 @@ public class OneSheeldManager {
             if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering())
                 bluetoothAdapter.cancelDiscovery();
             boolean isDefaultConnectingRetriesEnabled = OneSheeldManager.this.isAutomaticConnectingRetriesEnabled;
-            int totalTries = retryCount + 1;
+            int totalTries = connectionRetryCount + 1;
             int triesCounter = isDefaultConnectingRetriesEnabled ? totalTries * 3 : totalTries;
             boolean hasError = false;
             do {

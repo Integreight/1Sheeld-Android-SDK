@@ -209,7 +209,7 @@ public class MainActivity extends ActionBarActivity {
             }
         };
         OneSheeldSdk.init(this);
-        OneSheeldSdk.getManager().setRetryCount(0);
+        OneSheeldSdk.getManager().setConnectionRetryCount(0);
         OneSheeldSdk.getManager().setAutomaticConnectingRetries(true);
 
         OneSheeldSdk.getManager().addCallbacks(new OneSheeldScanningCallback() {
