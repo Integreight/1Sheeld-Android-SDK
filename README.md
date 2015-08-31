@@ -32,7 +32,7 @@ to use the JCenter Repository
 ```groovy
 dependencies {
     ...
-    compile 'com.integreight.onesheeld.sdk:android-sdk:1.0.0'
+    compile 'com.integreight.onesheeld:sdk:1.0.0'
     ...
 }
 ```
