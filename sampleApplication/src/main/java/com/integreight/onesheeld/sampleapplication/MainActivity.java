@@ -1,4 +1,4 @@
-package com.integreight.onesheeld.myapplication;
+package com.integreight.onesheeld.sampleapplication;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
