@@ -138,7 +138,7 @@ public class MainActivity extends ActionBarActivity {
         connectedDevices = new ArrayList<>();
         scannedDevices = new ArrayList<>();
         pinNumbers = new ArrayList<>();
-        for (int pinNum = 0; pinNum <= 13; pinNum++)
+        for (int pinNum = 2; pinNum <= 13; pinNum++)
             pinNumbers.add(String.valueOf(pinNum));
         oneSheeldScannedDevices = new ArrayList<>();
         oneSheeldConnnectedDevices = new ArrayList<>();
