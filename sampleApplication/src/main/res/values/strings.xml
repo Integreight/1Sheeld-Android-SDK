@@ -1,6 +1,3 @@
 <resources>
-    <string name="app_name">My Application</string>
-
-    <string name="hello_world">Hello world!</string>
-    <string name="action_exit">Exit</string>
+    <string name="app_name">1Sheeld SDK Sample Application</string>
 </resources>

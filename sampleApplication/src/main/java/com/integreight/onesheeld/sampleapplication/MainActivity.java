@@ -1,12 +1,10 @@
 package com.integreight.onesheeld.sampleapplication;
 
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -21,6 +19,7 @@ import com.integreight.onesheeld.sdk.OneSheeldConnectionCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDevice;
 import com.integreight.onesheeld.sdk.OneSheeldError;
 import com.integreight.onesheeld.sdk.OneSheeldErrorCallback;
+import com.integreight.onesheeld.sdk.OneSheeldManager;
 import com.integreight.onesheeld.sdk.OneSheeldScanningCallback;
 import com.integreight.onesheeld.sdk.OneSheeldSdk;
 import com.integreight.onesheeld.sdk.ShieldFrame;
@@ -29,39 +28,134 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
-    Button connect,disconnect;
-    TextView sheeld_name;
-    ListView connectedListView, scannedListView;
-    Spinner pins;
-    ProgressDialog scanningProgressDialog, connectionProgressDialog;
-    LinearLayout sheeldContainer;
-
-    private ArrayList<String> connectedDevices, scannedDevices, pinNumbers;
-    private ArrayList<OneSheeldDevice> oneSheeldScannedDevices, oneSheeldConnnectedDevices;
-    private ArrayAdapter<String> connectedDevicesArrayAdapter, scannedDevicesArrayAdapter, pinsArrayAdapter;
-    private OneSheeldDevice selectedConnectedDevice = null, selectedScanedDevice = null;
-    static Handler handler;
-    public static final int MSG_CONNECT = 1, MSG_DISCONNECT = 2, MSG_TOAST = 0;
+    private Handler uiThreadHandler = new Handler();
+    private Button connectButton;
+    private Button disconnectButton;
+    private TextView oneSheeldNameTextView;
+    private Spinner pinsSpinner;
+    private ProgressDialog scanningProgressDialog;
+    private ProgressDialog connectionProgressDialog;
+    private LinearLayout oneSheeldLinearLayout;
+    private ArrayList<String> connectedDevicesNames;
+    private ArrayList<String> scannedDevicesNames;
+    private ArrayList<OneSheeldDevice> oneSheeldScannedDevices;
+    private ArrayList<OneSheeldDevice> oneSheeldConnnectedDevices;
+    private ArrayAdapter<String> connectedDevicesArrayAdapter;
+    private ArrayAdapter<String> scannedDevicesArrayAdapter;
+    private OneSheeldDevice selectedConnectedDevice = null;
+    private OneSheeldDevice selectedScanedDevice = null;
     private boolean digitalWriteState = false;
+    private byte pushButtonShieldId = OneSheeldSdk.getKnownShields().PUSH_BUTTON_SHIELD.getId();
+    private byte pushButtonFunctionId = (byte) 0x01;
+    private OneSheeldManager oneSheeldManager;
+    private OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
+        @Override
+        public void onDeviceFind(OneSheeldDevice device) {
+            oneSheeldScannedDevices.add(device);
+            scannedDevicesNames.add(device.getName());
+            scannedDevicesArrayAdapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onScanFinish(List<OneSheeldDevice> foundDevices) {
+            scanningProgressDialog.dismiss();
+        }
+    };
+    private OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
+        @Override
+        public void onConnect(final OneSheeldDevice device) {
+            oneSheeldScannedDevices.remove(device);
+            oneSheeldConnnectedDevices.add(device);
+            final String deviceName = device.getName();
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (scannedDevicesNames.indexOf(deviceName) >= 0) {
+                        scannedDevicesNames.remove(deviceName);
+                        connectedDevicesNames.add(deviceName);
+                        connectedDevicesArrayAdapter.notifyDataSetChanged();
+                        scannedDevicesArrayAdapter.notifyDataSetChanged();
+                    }
+                    connectButton.setEnabled(false);
+                    disconnectButton.setEnabled(false);
+                    oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+                }
+            });
+            connectionProgressDialog.dismiss();
+        }
+
+        @Override
+        public void onDisconnect(OneSheeldDevice device) {
+            final String deviceName = device.getName();
+
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (connectedDevicesNames.indexOf(deviceName) >= 0) {
+                        connectedDevicesNames.remove(deviceName);
+                        connectedDevicesArrayAdapter.notifyDataSetChanged();
+                    }
+                    connectButton.setEnabled(false);
+                    disconnectButton.setEnabled(false);
+                    oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+                }
+            });
+            oneSheeldConnnectedDevices.remove(device);
+            if (scannedDevicesNames.indexOf(device.getName()) < 0 && oneSheeldScannedDevices.indexOf(device) < 0) {
+                oneSheeldScannedDevices.add(device);
+                scannedDevicesNames.add(device.getName());
+            }
+        }
+    };
+
+    private OneSheeldErrorCallback errorCallback = new OneSheeldErrorCallback() {
+        @Override
+        public void onError(final OneSheeldDevice device, final OneSheeldError error) {
+            if (connectionProgressDialog != null)
+                connectionProgressDialog.dismiss();
+            if (scanningProgressDialog != null)
+                scanningProgressDialog.dismiss();
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, "Error: " + error.toString() + (device != null ? " in " + device.getName() : ""), Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    };
+    private AdapterView.OnItemClickListener scannedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            selectedScanedDevice = oneSheeldScannedDevices.get(position);
+            connectButton.setEnabled(true);
+        }
+    };
+    private AdapterView.OnItemClickListener connectedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            selectedConnectedDevice = oneSheeldConnnectedDevices.get(position);
+            oneSheeldNameTextView.setText(oneSheeldConnnectedDevices.get(position).getName());
+            oneSheeldLinearLayout.setVisibility(View.VISIBLE);
+            disconnectButton.setEnabled(true);
+        }
+    };
 
     public void onClickScan(View v) {
         scanningProgressDialog.show();
-        OneSheeldSdk.getManager().setScanningTimeOut(20);
-        OneSheeldSdk.getManager().cancelScanning();
-        scannedDevices.clear();
+        oneSheeldManager.setScanningTimeOut(20);
+        oneSheeldManager.cancelScanning();
+        scannedDevicesNames.clear();
         scannedDevicesArrayAdapter.notifyDataSetChanged();
         oneSheeldScannedDevices.clear();
-        OneSheeldSdk.getManager().scan();
-//        scanningProgressDialog = ProgressDialog.show(this,"Scanning..","Please wait");
+        oneSheeldManager.scan();
     }
 
     public void onClickConnect(View v) {
         if (selectedScanedDevice != null) {
-            OneSheeldSdk.getManager().cancelScanning();
+            oneSheeldManager.cancelScanning();
             connectionProgressDialog.setMessage("Please wait while connecting to " + selectedScanedDevice.getName());
             connectionProgressDialog.show();
             selectedScanedDevice.connect();
-//            scanningProgressDialog = ProgressDialog.show(this,"Connecting..","Please wait while connecting to "+selectedScanedDevice.getName());
         }
     }
 
@@ -69,249 +163,127 @@ public class MainActivity extends ActionBarActivity {
         if (selectedConnectedDevice != null) {
             selectedConnectedDevice.disconnect();
             selectedConnectedDevice = null;
-//            sheeld_name.setText("Select Connected Device");
-            sheeldContainer.setVisibility(View.INVISIBLE);
+            oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         }
     }
 
     public void onClickDigitalWrite(View v) {
-        if (selectedConnectedDevice != null && pins != null) {
+        if (selectedConnectedDevice != null && pinsSpinner != null) {
             digitalWriteState = !digitalWriteState;
-            selectedConnectedDevice.digitalWrite(pins.getSelectedItemPosition(), digitalWriteState);
+            selectedConnectedDevice.digitalWrite(pinsSpinner.getSelectedItemPosition(), digitalWriteState);
             ((Button) v).setText("Digital Write (" + String.valueOf(digitalWriteState) + ")");
         }
     }
 
     public void onClickDigitalRead(View v) {
-        if (selectedConnectedDevice != null && pins != null)
-            ((Button) v).setText("DigitalRead (" + selectedConnectedDevice.digitalRead(pins.getSelectedItemPosition()) + ")");
+        if (selectedConnectedDevice != null && pinsSpinner != null)
+            ((Button) v).setText("DigitalRead (" + selectedConnectedDevice.digitalRead(pinsSpinner.getSelectedItemPosition()) + ")");
     }
 
-    public void onClickSendOnFrame(View v){
-        if (selectedConnectedDevice != null){
-            ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+    public void onClickSendOnFrame(View v) {
+        if (selectedConnectedDevice != null) {
+            ShieldFrame sf = new ShieldFrame(pushButtonShieldId, pushButtonFunctionId);
             sf.addArgument(true);
             selectedConnectedDevice.sendShieldFrame(sf);
         }
     }
 
-    public void onClickSendOffFrame(View v){
-        if (selectedConnectedDevice != null){
-            ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+    public void onClickSendOffFrame(View v) {
+        if (selectedConnectedDevice != null) {
+            ShieldFrame sf = new ShieldFrame(pushButtonShieldId, pushButtonFunctionId);
             sf.addArgument(false);
             selectedConnectedDevice.sendShieldFrame(sf);
         }
     }
 
     public void onClickBroadcastOn(View v) {
-        ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+        ShieldFrame sf = new ShieldFrame(pushButtonShieldId, pushButtonFunctionId);
         sf.addArgument(true);
-        OneSheeldSdk.getManager().broadcastShieldFrame(sf);
+        oneSheeldManager.broadcastShieldFrame(sf);
     }
 
     public void onClickBroadcastOff(View v) {
-        ShieldFrame sf = new ShieldFrame((byte) 0x03, (byte) 0x01);
+        ShieldFrame sf = new ShieldFrame(pushButtonShieldId, pushButtonFunctionId);
         sf.addArgument(false);
-        OneSheeldSdk.getManager().broadcastShieldFrame(sf);
+        oneSheeldManager.broadcastShieldFrame(sf);
     }
 
     public void onClickDisconnectAll(View v) {
-        OneSheeldSdk.getManager().disconnectAll();
-        sheeldContainer.setVisibility(View.INVISIBLE);
-        disconnect.setEnabled(false);
+        oneSheeldManager.disconnectAll();
+        oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+        disconnectButton.setEnabled(false);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        sheeldContainer = (LinearLayout) findViewById(R.id.sheeld_container);
-        sheeldContainer.setVisibility(View.INVISIBLE);
-        connect = (Button) findViewById(R.id.connect_sheeld);
-        disconnect = (Button) findViewById(R.id.disconnect_sheeld);
-        connect.setEnabled(false);
-        disconnect.setEnabled(false);
-        connectedListView = (ListView) findViewById(R.id.connected_list);
-        scannedListView = (ListView) findViewById(R.id.scanned_list);
-        pins = (Spinner) findViewById(R.id.pin_number);
-        sheeld_name = (TextView) findViewById(R.id.selected_sheeld_name);
-        connectedDevices = new ArrayList<>();
-        scannedDevices = new ArrayList<>();
-        pinNumbers = new ArrayList<>();
+        oneSheeldLinearLayout = (LinearLayout) findViewById(R.id.onesheeld_container);
+        connectButton = (Button) findViewById(R.id.connect_1sheeld);
+        disconnectButton = (Button) findViewById(R.id.disconnect_1sheeld);
+        ListView connectedDevicesListView = (ListView) findViewById(R.id.connected_list);
+        ListView scannedDevicesListView = (ListView) findViewById(R.id.scanned_list);
+        oneSheeldNameTextView = (TextView) findViewById(R.id.selected_1sheeld_name);
+        pinsSpinner = (Spinner) findViewById(R.id.pin_number);
+        connectedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, connectedDevicesNames);
+        scannedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, scannedDevicesNames);
+        ArrayList<String> pinNumbers = new ArrayList<>();
         for (int pinNum = 2; pinNum <= 13; pinNum++)
             pinNumbers.add(String.valueOf(pinNum));
+        ArrayAdapter<String> pinsArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, pinNumbers);
+        oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+        connectedDevicesNames = new ArrayList<>();
+        scannedDevicesNames = new ArrayList<>();
+        connectButton.setEnabled(false);
+        disconnectButton.setEnabled(false);
         oneSheeldScannedDevices = new ArrayList<>();
         oneSheeldConnnectedDevices = new ArrayList<>();
-        connectedDevicesArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, connectedDevices);
-        scannedDevicesArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, scannedDevices);
-        pinsArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, pinNumbers);
-        connectedListView.setAdapter(connectedDevicesArrayAdapter);
-        scannedListView.setAdapter(scannedDevicesArrayAdapter);
-        pins.setAdapter(pinsArrayAdapter);
+        connectedDevicesListView.setAdapter(connectedDevicesArrayAdapter);
+        scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
+        pinsSpinner.setAdapter(pinsArrayAdapter);
+        scannedDevicesListView.setOnItemClickListener(scannedDevicesListViewClickListener);
+        connectedDevicesListView.setOnItemClickListener(connectedDevicesListViewClickListener);
+        initScanningProgressDialog();
+        initConnectionProgressDialog();
+        initOneSheeldSdk();
+    }
+
+    private void initOneSheeldSdk() {
+        OneSheeldSdk.setDebugging(true);
+        OneSheeldSdk.init(this);
+        oneSheeldManager = OneSheeldSdk.getManager();
+        oneSheeldManager.setConnectionRetryCount(1);
+        oneSheeldManager.setAutomaticConnectingRetries(true);
+        oneSheeldManager.addScanningCallback(scanningCallback);
+        oneSheeldManager.addConnectionCallback(connectionCallback);
+        oneSheeldManager.addErrorCallback(errorCallback);
+    }
+
+    private void initScanningProgressDialog() {
         scanningProgressDialog = new ProgressDialog(this);
         scanningProgressDialog.setMessage("Please wait..");
         scanningProgressDialog.setTitle("Scanning");
-        scanningProgressDialog.setCancelable(false);
-        scanningProgressDialog.setCanceledOnTouchOutside(false);
+        scanningProgressDialog.setCancelable(true);
+        scanningProgressDialog.setCanceledOnTouchOutside(true);
+        scanningProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                oneSheeldManager.cancelScanning();
+            }
+        });
+    }
+
+    private void initConnectionProgressDialog() {
         connectionProgressDialog = new ProgressDialog(this);
         connectionProgressDialog.setMessage("Please wait while connecting..");
         connectionProgressDialog.setTitle("Connecting");
         connectionProgressDialog.setCancelable(false);
         connectionProgressDialog.setCanceledOnTouchOutside(false);
-        scannedListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                selectedScanedDevice = oneSheeldScannedDevices.get(position);
-                connect.setEnabled(true);
-            }
-        });
-        connectedListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                selectedConnectedDevice = oneSheeldConnnectedDevices.get(position);
-                sheeld_name.setText(oneSheeldConnnectedDevices.get(position).getName());
-                sheeldContainer.setVisibility(View.VISIBLE);
-                disconnect.setEnabled(true);
-            }
-        });
-
-        OneSheeldSdk.setDebugging(true);
-        handler = new Handler() {
-            String name;
-
-            public void handleMessage(android.os.Message msg) {
-                switch (msg.what) {
-                    case MSG_CONNECT:
-                        name = new String((String) msg.obj);
-                        if (scannedDevices.indexOf(name) >= 0) {
-                            scannedDevices.remove(name);
-                            connectedDevices.add(name);
-                            connectedDevicesArrayAdapter.notifyDataSetChanged();
-                            scannedDevicesArrayAdapter.notifyDataSetChanged();
-                        }
-                        connect.setEnabled(false);
-                        disconnect.setEnabled(false);
-                        sheeldContainer.setVisibility(View.INVISIBLE);
-                        break;
-                    case MSG_DISCONNECT:
-                        name = new String((String) msg.obj);
-                        if (connectedDevices.indexOf(name) >= 0) {
-                            connectedDevices.remove(name);
-                            connectedDevicesArrayAdapter.notifyDataSetChanged();
-                        }
-                        connect.setEnabled(false);
-                        disconnect.setEnabled(false);
-                        sheeldContainer.setVisibility(View.INVISIBLE);
-                        break;
-                    case MSG_TOAST:
-                        Toast.makeText(MainActivity.this, String.valueOf((String) msg.obj), Toast.LENGTH_LONG).show();
-                }
-            }
-        };
-        OneSheeldSdk.init(this);
-        OneSheeldSdk.getManager().setConnectionRetryCount(0);
-        OneSheeldSdk.getManager().setAutomaticConnectingRetries(true);
-
-        OneSheeldSdk.getManager().addCallbacks(new OneSheeldScanningCallback() {
-            @Override
-            public void onScanStart() {
-//                Log.d("MainActivity", "Scanning Started");
-
-            }
-
-            @Override
-            public void onDeviceFind(OneSheeldDevice device) {
-//                Log.d("MainActivity", "Device Found: " + device.getName());
-                oneSheeldScannedDevices.add(device);
-                scannedDevices.add(device.getName());
-                scannedDevicesArrayAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onScanFinish(List<OneSheeldDevice> foundDevices) {
-                //Toast.makeText(getApplicationContext(),"Scan Finished",Toast.LENGTH_SHORT).show();
-                Log.d("MainActivity", "Finished Scanning: " + foundDevices.size() + " device(s) found");
-                scanningProgressDialog.dismiss();
-//                for (OneSheeldDevice device : foundDevices) {
-//                    OneSheeldSdk.getManager().connect(device);
-////                    OneSheeldSdk.getKnownShields().co;
-//
-//                }
-            }
-        }, new OneSheeldConnectionCallback() {
-            @Override
-            public void onConnect(OneSheeldDevice device) {
-                Log.d("MainActivity", "Connected To: " + device.getName());
-                device.unMute();
-                oneSheeldScannedDevices.remove(device);
-                oneSheeldConnnectedDevices.add(device);
-                handler.obtainMessage(MSG_CONNECT, device.getName()).sendToTarget();
-                connectionProgressDialog.dismiss();
-            }
-
-            @Override
-            public void onDisconnect(OneSheeldDevice device) {
-                Log.d("MainActivity", "Disconnected From: " + device.getName());
-                handler.obtainMessage(MSG_DISCONNECT, device.getName()).sendToTarget();
-                oneSheeldConnnectedDevices.remove(device);
-                if (scannedDevices.indexOf(device.getName()) < 0 && oneSheeldScannedDevices.indexOf(device) < 0) {
-                    oneSheeldScannedDevices.add(device);
-                    scannedDevices.add(device.getName());
-                }
-            }
-
-            @Override
-            public void onConnectionRetry(OneSheeldDevice device, int retryCount) {
-//                Log.d("MainActivity", "Retried Connection To: " + device.getName()+", Retry #"+retryCount);
-//                OneSheeldSdk.getManager().cancelConnecting();
-            }
-        }, new OneSheeldErrorCallback() {
-            @Override
-            public void onError(OneSheeldDevice device, OneSheeldError error) {
-                Log.d("MainActivity", "Error: " + error.toString() + (device != null ? " in " + device.getName() : ""));
-                if (connectionProgressDialog != null)
-                    connectionProgressDialog.dismiss();
-                if (scanningProgressDialog != null)
-                    scanningProgressDialog.dismiss();
-
-                handler.obtainMessage(MSG_TOAST, "Error: " + error.toString() + (device != null ? " in " + device.getName() : "")).sendToTarget();
-            }
-        });
-
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
     }
 
     @Override
     protected void onDestroy() {
-        OneSheeldSdk.getManager().cancelScanning();
+        oneSheeldManager.cancelScanning();
         super.onDestroy();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_exit) {
-            finish();
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 }

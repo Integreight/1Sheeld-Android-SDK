@@ -72,7 +72,7 @@
         android:weightSum="2">
 
         <Button
-            android:id="@+id/connect_sheeld"
+            android:id="@+id/connect_1sheeld"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -80,7 +80,7 @@
             android:text="Connect" />
 
         <Button
-            android:id="@+id/disconnect_sheeld"
+            android:id="@+id/disconnect_1sheeld"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -92,7 +92,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:onClick="onClickDisconnectAll"
-        android:text="Disconnect All" />
+        android:text="Disconnect All Devices" />
 
     <LinearLayout
         android:layout_width="fill_parent"
@@ -101,31 +101,29 @@
         android:weightSum="2">
 
         <Button
-            android:id="@+id/button2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="onClickBroadcastOn"
-            android:text="Broadcast frame on" />
+            android:text="Broadcast Frame On" />
 
         <Button
-            android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="onClickBroadcastOff"
-            android:text="Broadcast frame off" />
+            android:text="Broadcast Frame Off" />
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/sheeld_container"
+        android:id="@+id/onesheeld_container"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="invisible">
 
         <TextView
-            android:id="@+id/selected_sheeld_name"
+            android:id="@+id/selected_1sheeld_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -173,14 +171,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="onClickSendOnFrame"
-                android:text="Frame On"/>
+                android:text="Sennd Frame On"/>
 
             <Button
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="onClickSendOffFrame"
-                android:text="Frame Off"/>
+                android:text="Send Frame Off"/>
         </LinearLayout>
     </LinearLayout>
 
