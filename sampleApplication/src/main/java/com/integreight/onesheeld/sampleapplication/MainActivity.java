@@ -225,6 +225,8 @@ public class MainActivity extends ActionBarActivity {
         ListView scannedDevicesListView = (ListView) findViewById(R.id.scanned_list);
         oneSheeldNameTextView = (TextView) findViewById(R.id.selected_1sheeld_name);
         pinsSpinner = (Spinner) findViewById(R.id.pin_number);
+        connectedDevicesNames = new ArrayList<>();
+        scannedDevicesNames = new ArrayList<>();
         connectedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, connectedDevicesNames);
         scannedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, scannedDevicesNames);
         ArrayList<String> pinNumbers = new ArrayList<>();
@@ -232,8 +234,6 @@ public class MainActivity extends ActionBarActivity {
             pinNumbers.add(String.valueOf(pinNum));
         ArrayAdapter<String> pinsArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, pinNumbers);
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
-        connectedDevicesNames = new ArrayList<>();
-        scannedDevicesNames = new ArrayList<>();
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
         oneSheeldScannedDevices = new ArrayList<>();
