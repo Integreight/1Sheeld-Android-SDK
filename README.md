@@ -4,10 +4,22 @@
 
 The 1Sheeld SDK for Android is a library that allows you to scan, connect and interact with 1Sheeld boards through your custom Android app. The SDK is compatible with Android 2.3 or above and requires devices with Bluetooth connectivity.
 
-It allows for:
-- Scanning for 1Sheelds.
-- Connecting to multiple 1Sheelds at once. (Up to seven devices)
+It allows you to:
+- Scan for 1Sheelds.
+- Connect to multiple 1Sheelds at once. (Up to seven devices)
 - Send, receive and broadcast raw data and frames.
+
+In Addition to:
+- Automatic connection retry in case of connection failure with 3 different approaches.
+- Query Arduino library and firmware versions.
+- Knowing if the received frame is one of the known shields frames.
+- Control digital pins status and read their values.
+- Send and receive raw bytes.
+- Mute and Unmute communication with 1Sheeld.
+- Broadcast frames of raw data to multiple devices at once.
+- Queue frames in case Arduino is in a callback.
+
+...and more.
 
 **IMPORTANT:  By default, this library will only connect to Bluetooth devices that has 1Sheeld in its name.**
 
@@ -19,7 +31,7 @@ Learn more:
 
 ## Installation ##
 
-Make sure JCenter is added to your build file's list of repositories.
+Make sure JCenter is added to your build file's list of repositories. (It is added by default for new projects created with the latest version of Android Studio)
 
 ```groovy
 repositories {
