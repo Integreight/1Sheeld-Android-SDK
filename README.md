@@ -23,12 +23,6 @@ In Addition to:
 
 **IMPORTANT:  By default, this library will only connect to Bluetooth devices that has 1Sheeld in its name.**
 
-## Learn More ##
- - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/).
- - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication)
- - Download [1Sheeld App](https://play.google.com/store/apps/details?id=com.integreight.onesheeld) from Play Store.
- - Check our [1Sheeld Forums](http://www.1sheeld.com/forum) where you can post your questions and get answers.
-
 ## Installation ##
 
 Make sure JCenter is added to your build file's list of repositories. (It is added by default for new projects created with the latest version of Android Studio)
@@ -140,6 +134,12 @@ Contributions are welcomed, please follow this pattern:
 - Submit a pull request.
 
 Don't forget to drop us an email, post on our forum, or mention us on Twitter or Facebook about what you have did with the SDK, we would love to hear about it.
+
+## Learn More ##
+ - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/).
+ - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication)
+ - Download [1Sheeld App](https://play.google.com/store/apps/details?id=com.integreight.onesheeld) from Play Store.
+ - Check our [1Sheeld Forums](http://www.1sheeld.com/forum) where you can post your questions and get answers.
 
 ## Changelog ##
 
