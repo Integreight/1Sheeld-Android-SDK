@@ -118,6 +118,8 @@ Contributions are welcomed, please follow this pattern:
 - Commit and push code to your forked repo.
 - Submit a pull request.
 
+Don't forget to drop us an email, post on our forum, or mention us on Twitter or Facebook about what you have did with the SDK, we would love to hear about it.
+
 ## Changelog ##
 
 To see what has changed in recent versions of 1Sheeld Android SDK, see the [Change Log](CHANGELOG.md).
