@@ -23,9 +23,9 @@ In Addition to:
 
 **IMPORTANT:  By default, this library will only connect to Bluetooth devices that has 1Sheeld in its name.**
 
-Learn more:
+## Learn More ##
  - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/).
- - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication) (includes scanning, connecting, and communicating with 1Sheeld boards).
+ - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication)
  - Download [1Sheeld App](https://play.google.com/store/apps/details?id=com.integreight.onesheeld) from Play Store.
  - Check our [1Sheeld Forums](http://www.1sheeld.com/forum) where you can post your questions and get answers.
 
@@ -117,6 +117,15 @@ manager.addConnectionCallback(connectionCallback);
 manager.addScanningCallback(scanningCallback);
 manager.scan();
 ```
+
+## Sample Application ##
+
+![Screenshot of the SDK's sample application](http://i.imgur.com/JLoBce4.png)
+
+The sample application allows you to:
+- Scan, and connect to multiple 1Sheeld devices at once.
+- Control each device digital pins.
+- Simulate the [push button shield](http://1sheeld.com/shields/push-button-shield/) of the official app and send/broadcast its on/off frames.
 
 ## Building The SDK ##
 
