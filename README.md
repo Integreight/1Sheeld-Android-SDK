@@ -56,11 +56,14 @@ OneSheeldSdk.setDebugging(true);
 
 ## Usage ##
 
+Here is an example that scan, connect to the first found device, and controls its digital pins.
+
 ```java
 // Init the SDK with context
 OneSheeldSdk.init(this);
 // Optional, enable dubbing messages.
 OneSheeldSdk.setDebugging(true);
+
 // Get the manager instance
 OneSheeldManager manager = OneSheeldSdk.getManager();
 // Set the connection failing retry count to 1
@@ -68,24 +71,18 @@ manager.setConnectionRetryCount(1);
 // Set the automatic connecting retries to true, this will use 3 different methods for connecting
 manager.setAutomaticConnectingRetries(true);
 
+// Construct a new OneSheeldScanningCallback callback and override onDeviceFind method
 OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
                                               @Override
-                                              public void onScanStart() {
-
-                                              }
-
-                                              @Override
                                               public void onDeviceFind(OneSheeldDevice device) {
+                                                  // Cancel scanning before connecting
                                                   OneSheeldSdk.getManager().cancelScanning();
+                                                  // Connect to the found device
                                                   device.connect();
-                                              }
-
-                                              @Override
-                                              public void onScanFinish(List<OneSheeldDevice> foundDevices) {
-
                                               }
                                           };
 
+// Construct a new OneSheeldConnectionCallback callback and override onConnect method
 OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
                                               @Override
                                               public void onConnect(OneSheeldDevice device) {
@@ -95,20 +92,13 @@ OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback
                                                   // Read the value of pin 12
                                                   boolean isHigh=device.digitalRead(12);
                                               }
-
-                                              @Override
-                                              public void onDisconnect(OneSheeldDevice device) {
-
-                                              }
-
-                                              @Override
-                                              public void onConnectionRetry(OneSheeldDevice device, int retryCount) {
-
-                                              }
                                           };
 
+// Add the connection and scanning callbacks
 manager.addConnectionCallback(connectionCallback);
 manager.addScanningCallback(scanningCallback);
+
+// Initiate the Bluetooth scanning
 manager.scan();
 ```
 
