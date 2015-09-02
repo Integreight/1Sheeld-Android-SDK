@@ -41,69 +41,69 @@ or replace 1.0.0 with the version you wish to use.
 
 Then initialize the SDK in the onCreate() method of your application class or main activity.
 
-    ```java
-    //  Pass the context to the init method.
-    OneSheeldSdk.init(applicationContext);
-    // Optional, enable dubbing messages.
-    OneSheeldSdk.setDebugging(true);
-    ```
+```java
+//  Pass the context to the init method.
+OneSheeldSdk.init(applicationContext);
+// Optional, enable dubbing messages.
+OneSheeldSdk.setDebugging(true);
+```
 
 ## Usage ##
 
 ```java
-  // Init the SDK with context
-  OneSheeldSdk.init(this);
-  // Optional, enable dubbing messages.
-  OneSheeldSdk.setDebugging(true);
-  // Get the manager instance
-  OneSheeldManager manager = OneSheeldSdk.getManager();
-  // Set the connection failing retry count to 1
-  manager.setConnectionRetryCount(1);
-  // Set the automatic connecting retries to true, this will use 3 different methods for connecting
-  manager.setAutomaticConnectingRetries(true);
+// Init the SDK with context
+OneSheeldSdk.init(this);
+// Optional, enable dubbing messages.
+OneSheeldSdk.setDebugging(true);
+// Get the manager instance
+OneSheeldManager manager = OneSheeldSdk.getManager();
+// Set the connection failing retry count to 1
+manager.setConnectionRetryCount(1);
+// Set the automatic connecting retries to true, this will use 3 different methods for connecting
+manager.setAutomaticConnectingRetries(true);
 
-  OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
-                                                  @Override
-                                                  public void onScanStart() {
+OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
+                                              @Override
+                                              public void onScanStart() {
 
-                                                  }
+                                              }
 
-                                                  @Override
-                                                  public void onDeviceFind(OneSheeldDevice device) {
-                                                      OneSheeldSdk.getManager().cancelScanning();
-                                                      device.connect();
-                                                  }
+                                              @Override
+                                              public void onDeviceFind(OneSheeldDevice device) {
+                                                  OneSheeldSdk.getManager().cancelScanning();
+                                                  device.connect();
+                                              }
 
-                                                  @Override
-                                                  public void onScanFinish(List<OneSheeldDevice> foundDevices) {
+                                              @Override
+                                              public void onScanFinish(List<OneSheeldDevice> foundDevices) {
 
-                                                  }
-                                              };
+                                              }
+                                          };
 
-  OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
-                                                  @Override
-                                                  public void onConnect(OneSheeldDevice device) {
-                                                      // Output high on pin 13
-                                                      device.digitalWrite(13,true);
+OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
+                                              @Override
+                                              public void onConnect(OneSheeldDevice device) {
+                                                  // Output high on pin 13
+                                                  device.digitalWrite(13,true);
 
-                                                      // Read the value of pin 12
-                                                      boolean isHigh=device.digitalRead(12);
-                                                  }
+                                                  // Read the value of pin 12
+                                                  boolean isHigh=device.digitalRead(12);
+                                              }
 
-                                                  @Override
-                                                  public void onDisconnect(OneSheeldDevice device) {
+                                              @Override
+                                              public void onDisconnect(OneSheeldDevice device) {
 
-                                                  }
+                                              }
 
-                                                  @Override
-                                                  public void onConnectionRetry(OneSheeldDevice device, int retryCount) {
+                                              @Override
+                                              public void onConnectionRetry(OneSheeldDevice device, int retryCount) {
 
-                                                  }
-                                              };
+                                              }
+                                          };
 
-  manager.addConnectionCallback(connectionCallback);
-  manager.addScanningCallback(scanningCallback);
-  manager.scan();
+manager.addConnectionCallback(connectionCallback);
+manager.addScanningCallback(scanningCallback);
+manager.scan();
 ```
 
 ## Building The SDK ##
