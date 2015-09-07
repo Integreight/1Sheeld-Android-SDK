@@ -48,7 +48,7 @@ or replace 1.0.0 with the version you wish to use.
 Then initialize the SDK in the onCreate() method of your application class or main activity.
 
 ```java
-//  Pass the context to the init method.
+// Pass the context to the init method.
 OneSheeldSdk.init(applicationContext);
 // Optional, enable dubbing messages.
 OneSheeldSdk.setDebugging(true);
@@ -126,7 +126,7 @@ Contributions are welcomed, please follow this pattern:
 Don't forget to drop us an email, post on our forum, or mention us on Twitter or Facebook about what you have did with the SDK, we would love to hear about it.
 
 ## Learn More ##
- - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/).
+ - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/1.0.0/).
  - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication)
  - Download [1Sheeld App](https://play.google.com/store/apps/details?id=com.integreight.onesheeld) from Play Store.
  - Check our [1Sheeld Forums](http://www.1sheeld.com/forum) where you can post your questions and get answers.
