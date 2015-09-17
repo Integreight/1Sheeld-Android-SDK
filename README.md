@@ -104,7 +104,7 @@ manager.scan();
 
 ## Sample Application ##
 
-![Screenshot of the SDK's sample application](http://i.imgur.com/JLoBce4.png)
+![Screenshot of the SDK's sample application](http://i.imgur.com/epuaEFd.png)
 
 The sample application allows you to:
 - Scan, and connect to multiple 1Sheeld devices at once.
