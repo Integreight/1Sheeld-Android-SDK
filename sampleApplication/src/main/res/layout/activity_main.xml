@@ -171,7 +171,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="onClickSendOnFrame"
-                android:text="Sennd Frame On"/>
+                android:text="Send Frame On"/>
 
             <Button
                 android:layout_width="fill_parent"
