@@ -170,14 +170,14 @@ public class MainActivity extends ActionBarActivity {
     public void onClickDigitalWrite(View v) {
         if (selectedConnectedDevice != null && pinsSpinner != null) {
             digitalWriteState = !digitalWriteState;
-            selectedConnectedDevice.digitalWrite(pinsSpinner.getSelectedItemPosition(), digitalWriteState);
+            selectedConnectedDevice.digitalWrite(pinsSpinner.getSelectedItemPosition() + 2, digitalWriteState);
             ((Button) v).setText("Digital Write (" + String.valueOf(digitalWriteState) + ")");
         }
     }
 
     public void onClickDigitalRead(View v) {
         if (selectedConnectedDevice != null && pinsSpinner != null)
-            ((Button) v).setText("DigitalRead (" + selectedConnectedDevice.digitalRead(pinsSpinner.getSelectedItemPosition()) + ")");
+            ((Button) v).setText("DigitalRead (" + selectedConnectedDevice.digitalRead(pinsSpinner.getSelectedItemPosition() + 2) + ")");
     }
 
     public void onClickSendOnFrame(View v) {
