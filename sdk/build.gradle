@@ -47,7 +47,5 @@ dependencies {
 }
 
 apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-def localProperties = new File("local.properties");
-if(!localProperties.exists())localProperties.createNewFile();
 apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
 
