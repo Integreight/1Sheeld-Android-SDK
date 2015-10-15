@@ -210,7 +210,6 @@ public class OneSheeldDevice {
      * <p>The OneSheeldSdk.setDebugging() should be enabled first</p>
      * <p>This includes huge messages if the 1Sheeld pins are floating.</p>
      *
-     * @return the boolean
      */
     public void setPinsDebugging(boolean isPinDebuggingEnabled) {
         this.isPinDebuggingEnabled = isPinDebuggingEnabled;
