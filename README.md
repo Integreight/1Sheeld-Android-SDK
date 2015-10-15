@@ -1,4 +1,4 @@
-# 1Sheeld SDK for Android #
+# 1Sheeld SDK for Android [![Build Status](https://travis-ci.org/Integreight/1Sheeld-Android-SDK.svg?branch=master)](https://travis-ci.org/Integreight/1Sheeld-Android-SDK)#
 
 ## Overview ##
 
