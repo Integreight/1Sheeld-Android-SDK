@@ -25,7 +25,7 @@ In Addition to:
 
 ## Installation ##
 
-Make sure JCenter is added to your build file's list of repositories. (It is added by default for new projects created with the latest version of Android Studio)
+Make sure JCenter is added to your project gradle.build file's list of repositories. (It is added by default for new projects created with the latest version of Android Studio)
 
 ```groovy
 repositories {
@@ -33,7 +33,7 @@ repositories {
 }
 ```
 
-to use the JCenter Repository
+to use the JCenter repository, add the following line to the dependencies section of your module's ```build.gradle```.
 
 ```groovy
 dependencies {
@@ -43,7 +43,7 @@ dependencies {
 }
 ```
 
-or replace 1.0.0 with the version you wish to use.
+You can replace 1.0.0 with the version you wish to use. (Review the [releases page](https://github.com/Integreight/1Sheeld-Android-SDK/releases) to know the version numbers of the old releases.)
 
 Then initialize the SDK in the onCreate() method of your application class or main activity.
 
@@ -113,7 +113,13 @@ The sample application allows you to:
 
 ## Building The SDK ##
 
-Just clone the repo and open it with the latest version of Android Studio.
+The repo is a generic Gradle project, it was built and tested using the latest stable version of Android Studio.
+
+To build the project and generate the release and debug aar(s), run this command on the root of the repo:
+
+```
+.\gradlew assemble
+```
 
 ## Contribution ##
 
