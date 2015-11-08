@@ -1264,6 +1264,7 @@ public class OneSheeldDevice {
                         serialBuffer.clear();
                         continue;
                     }
+                    boolean continueRequested=false;
                     for (int i = 0; i < argumentsNumber; i++) {
                         int length = readByteFromSerialBuffer() & 0xFF;
                         int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
@@ -1272,7 +1273,8 @@ public class OneSheeldDevice {
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
                             serialBuffer.clear();
-                            continue;
+                            continueRequested=true;
+                            break;
                         }
                         byte[] data = new byte[length];
                         for (int j = 0; j < length; j++) {
@@ -1280,6 +1282,7 @@ public class OneSheeldDevice {
                         }
                         frame.addArgument(data);
                     }
+                    if(continueRequested)continue;
                     if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
                         Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
