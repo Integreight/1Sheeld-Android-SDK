@@ -38,12 +38,12 @@ to use the JCenter repository, add the following line to the dependencies sectio
 ```groovy
 dependencies {
     ...
-    compile 'com.integreight.onesheeld:sdk:1.0.0'
+    compile 'com.integreight.onesheeld:sdk:1.0.1'
     ...
 }
 ```
 
-You can replace 1.0.0 with the version you wish to use. (Review the [releases page](https://github.com/Integreight/1Sheeld-Android-SDK/releases) to know the version numbers of the old releases.)
+You can replace 1.0.1 with the version you wish to use. (Review the [releases page](https://github.com/Integreight/1Sheeld-Android-SDK/releases) to know the version numbers of the old releases.)
 
 Then initialize the SDK in the onCreate() method of your application class or main activity.
 
