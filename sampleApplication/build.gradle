@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.1"
+    compileSdkVersion 22
+    buildToolsVersion "23.0.2"
 
     defaultConfig {
         applicationId "com.integreight.onesheeld.sampleapplication"
         minSdkVersion 9
-        targetSdkVersion 21
+        targetSdkVersion 22
         versionCode 150831
         versionName "1.0.0"
     }
