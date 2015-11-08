@@ -1253,8 +1253,7 @@ public class OneSheeldDevice {
                     byte shieldId = readByteFromSerialBuffer();
                     byte instanceId = readByteFromSerialBuffer();
                     byte functionId = readByteFromSerialBuffer();
-                    ShieldFrame frame = new ShieldFrame(shieldId, instanceId,
-                            functionId);
+                    ShieldFrame frame = new ShieldFrame(shieldId,functionId);
                     int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
                     int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                     if (argumentsNumber != argumentsNumberVerification) {

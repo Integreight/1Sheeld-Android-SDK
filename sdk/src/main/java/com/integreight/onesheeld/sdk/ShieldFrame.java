@@ -30,23 +30,9 @@ public class ShieldFrame {
     static final byte END_OF_FRAME = (byte) 0x00;
 
     private byte shieldId;
-    private byte instanceId;
     private byte functionId;
     private ArrayList<byte[]> arguments;
 
-    /**
-     * Instantiates a new <tt>ShieldFrame</tt>.
-     *
-     * @param shieldId   the shield id
-     * @param instanceId the instance id
-     * @param functionId the function id
-     */
-    public ShieldFrame(byte shieldId, byte instanceId, byte functionId) {
-        this.shieldId = shieldId;
-        this.instanceId = instanceId;
-        this.functionId = functionId;
-        arguments = new ArrayList<>();
-    }
 
     /**
      * Instantiates a new <tt>ShieldFrame</tt>.
@@ -56,7 +42,6 @@ public class ShieldFrame {
      */
     public ShieldFrame(byte shieldId, byte functionId) {
         this.shieldId = shieldId;
-        this.instanceId = 0;
         this.functionId = functionId;
         arguments = new ArrayList<>();
     }
@@ -68,7 +53,6 @@ public class ShieldFrame {
      */
     public ShieldFrame(byte shieldId) {
         this.shieldId = shieldId;
-        this.instanceId = 0;
         this.functionId = 0;
         arguments = new ArrayList<>();
     }
@@ -82,14 +66,6 @@ public class ShieldFrame {
         return shieldId;
     }
 
-    /**
-     * Gets the instance id.
-     *
-     * @return the instance id
-     */
-    public byte getInstanceId() {
-        return instanceId;
-    }
 
     /**
      * Gets the function id.
@@ -275,11 +251,13 @@ public class ShieldFrame {
         for (byte[] argument : arguments) {
             totalSizeOfArguments += argument.length;
         }
+        int randomValue= (int) Math.round((Math.random()*15));
+        randomValue=randomValue|((15-randomValue)<<4);
         int frameSize = 7 + arguments.size() * 2 + totalSizeOfArguments;
         byte[] data = new byte[frameSize];
         data[0] = START_OF_FRAME;
         data[1] = shieldId;
-        data[2] = instanceId;
+        data[2] = (byte)randomValue;
         data[3] = functionId;
         data[4] = (byte) arguments.size();
         data[5] = (byte) (255 - arguments.size());
