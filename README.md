@@ -121,6 +121,16 @@ To build the project and generate the release and debug aar(s), run this command
 .\gradlew assemble
 ```
 
+## Required Android Permissions ##
+
+*android.permission.BLUETOOTH*: Required for connecting and communicating with paired Bluetooth devices.
+
+*android.permission.BLUETOOTH_ADMIN*: Required for discovering and pairing Bluetooth devices.
+
+*android.permission.ACCESS_COARSE_LOCATION*: Required for Bluetooth discovery starting from Android 6.0.
+
+The first two permissions are implicitly added for you when you include the SDK in you project, you don't have to add them to your manifest.
+
 ## Contribution ##
 
 Contributions are welcomed, please follow this pattern:
