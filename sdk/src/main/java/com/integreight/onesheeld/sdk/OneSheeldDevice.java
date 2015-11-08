@@ -110,8 +110,8 @@ public class OneSheeldDevice {
     private boolean isPaired;
     private BluetoothDevice bluetoothDevice;
     private ConnectedThread connectedThread;
-    private boolean isBluetoothBufferWaiting;
-    private boolean isSerialBufferWaiting;
+    private volatile boolean isBluetoothBufferWaiting;
+    private volatile boolean isSerialBufferWaiting;
     private TimeOut ShieldFrameTimeout;
     private boolean isConnected;
     private OneSheeldManager manager;
@@ -845,8 +845,12 @@ public class OneSheeldDevice {
         resetProcessInput();
         bluetoothBufferListeningThread = new BluetoothBufferListeningThread();
         serialBufferListeningThread = new SerialBufferListeningThread();
-        while (!isBluetoothBufferWaiting) ;
-        while (!isSerialBufferWaiting) ;
+        while (true) {
+            if (isBluetoothBufferWaiting) break;
+        }
+        while (true) {
+            if (isSerialBufferWaiting) break;
+        }
         enableReporting();
         setAllPinsAsInput();
         queryInputPinsValues();
