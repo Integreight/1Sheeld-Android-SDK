@@ -61,7 +61,6 @@ public abstract class OneSheeldDataCallback {
     /**
      * This method gets called for every {@link ShieldFrame} of a
      * {@link KnownShield} received on the serial pins of 1Sheeld board.
-     * <p/>
      * <p>For a <tt>ShieldFrame</tt> to be known, its shield id and function id
      * should be present in one of {@link KnownShield}s in {@link KnownShields}
      * list. </p>

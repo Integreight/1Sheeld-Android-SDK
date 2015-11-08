@@ -209,7 +209,7 @@ public class OneSheeldDevice {
      * Sets the pin debugging logging messages.
      * <p>The OneSheeldSdk.setDebugging() should be enabled first</p>
      * <p>This includes huge messages if the 1Sheeld pins are floating.</p>
-     *
+     * @param isPinDebuggingEnabled the required state of the flag
      */
     public void setPinsDebugging(boolean isPinDebuggingEnabled) {
         this.isPinDebuggingEnabled = isPinDebuggingEnabled;

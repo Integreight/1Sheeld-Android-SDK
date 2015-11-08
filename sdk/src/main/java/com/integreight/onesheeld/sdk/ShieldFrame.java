@@ -113,7 +113,7 @@ public class ShieldFrame {
      * Parses a specific argument as an integer and return it.
      *
      * @param argNo the argument number
-     * @return the argument as integer or 0 if the argument is not found or the arguments bytes > 4.
+     * @return the argument as integer or 0 if the argument is not found or the arguments bytes is larger than 4.
      */
     public int getArgumentAsInteger(int argNo) {
         if (argNo < 0 || argNo >= arguments.size() || arguments.get(argNo).length > 4)
