@@ -61,7 +61,7 @@ Here is an example that scan, connect to the first found device, and controls it
 ```java
 // Init the SDK with context
 OneSheeldSdk.init(this);
-// Optional, enable dubbing messages.
+// Optional, enable debugging messages.
 OneSheeldSdk.setDebugging(true);
 
 // Get the manager instance
