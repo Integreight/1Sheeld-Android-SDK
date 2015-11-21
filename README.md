@@ -1,4 +1,4 @@
-# 1Sheeld SDK for Android [![Build Status](https://travis-ci.org/Integreight/1Sheeld-Android-SDK.svg?branch=master)](https://travis-ci.org/Integreight/1Sheeld-Android-SDK)  [![Download](https://api.bintray.com/packages/imustafa/maven/sdk/images/download.svg)](https://bintray.com/imustafa/maven/sdk/_latestVersion)#
+# 1Sheeld SDK for Android [![Build Status](https://travis-ci.org/Integreight/1Sheeld-Android-SDK.svg?branch=master)](https://travis-ci.org/Integreight/1Sheeld-Android-SDK) #
 
 ## Overview ##
 
