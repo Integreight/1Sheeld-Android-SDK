@@ -17,6 +17,16 @@
 package com.integreight.onesheeld.sdk;
 
 abstract class Log {
+    static void i(String tag, String msg) {
+        if (OneSheeldSdk.isDebuggingEnabled() && tag != null && tag.trim().length() > 0 && msg != null && msg.trim().length() > 0)
+            android.util.Log.i(tag, msg);
+    }
+
+    static void i(String msg) {
+        if (OneSheeldSdk.isDebuggingEnabled() && msg != null && msg.trim().length() > 0)
+            android.util.Log.i(OneSheeldSdk.TAG, msg);
+    }
+
     static void d(String tag, String msg) {
         if (OneSheeldSdk.isDebuggingEnabled() && tag != null && tag.trim().length() > 0 && msg != null && msg.trim().length() > 0)
             android.util.Log.d(tag, msg);

@@ -55,7 +55,7 @@ public class OneSheeldSdk {
      */
     public static void setDebugging(boolean value) {
         isDebuggingEnabled = value;
-        if (value) Log.d("Debugging logs enabled.");
+        if (value) Log.i("Debugging logs enabled.");
     }
 
     /**
@@ -106,7 +106,7 @@ public class OneSheeldSdk {
             throw new NullPointerException("The passed context is null, have you checked its validity?");
         OneSheeldSdk.context = context;
         isInit = true;
-        Log.d("OneSheeld Android SDK v" + versionName + " is initialized.");
+        Log.i("OneSheeld Android SDK v" + versionName + " is initialized.");
     }
 
     static Context getContext() {

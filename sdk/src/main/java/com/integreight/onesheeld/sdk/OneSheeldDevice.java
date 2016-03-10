@@ -470,7 +470,7 @@ public class OneSheeldDevice {
     }
 
     private void notifyHardwareOfConnection() {
-        Log.d("Device " + this.name + ": Notifying the board with connection.");
+        Log.i("Device " + this.name + ": Notifying the board with connection.");
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED));
     }
 
@@ -601,7 +601,7 @@ public class OneSheeldDevice {
         if (frame == null) return;
         byte[] frameBytes = frame.getAllFrameAsBytes();
         sendData(frameBytes);
-        Log.d("Device " + this.name + ": Frame sent, values: " + frame + ".");
+        Log.i("Device " + this.name + ": Frame sent, values: " + frame + ".");
     }
 
     private void respondToIsAlive() {
@@ -625,7 +625,7 @@ public class OneSheeldDevice {
             return;
         }
         sendData(data);
-        Log.d("Device " + this.name + ": Serial data sent, values: " + ArrayUtils.toHexString(data) + ".");
+        Log.i("Device " + this.name + ": Serial data sent, values: " + ArrayUtils.toHexString(data) + ".");
     }
 
     private void sendData(byte[] data) {
@@ -644,7 +644,7 @@ public class OneSheeldDevice {
     }
 
     private void enableReporting() {
-        Log.d("Device " + this.name + ": Enable digital pins reporting.");
+        Log.i("Device " + this.name + ": Enable digital pins reporting.");
         synchronized (sendingDataLock) {
             for (byte i = 0; i < 3; i++) {
                 write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
@@ -653,14 +653,14 @@ public class OneSheeldDevice {
     }
 
     private void queryInputPinsValues() {
-        Log.d("Device " + this.name + ": Query the current status of the pins.");
+        Log.i("Device " + this.name + ": Query the current status of the pins.");
         synchronized (sendingDataLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
     }
 
     private void setAllPinsAsInput() {
-        Log.d("Device " + this.name + ": Set all digital pins as input.");
+        Log.i("Device " + this.name + ": Set all digital pins as input.");
         for (int i = 0; i < 20; i++) {
             pinMode(i, INPUT);
         }
@@ -679,7 +679,7 @@ public class OneSheeldDevice {
             return false;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Digital read from pin " + pin + ".");
+            Log.i("Device " + this.name + ": Digital read from pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         return getDigitalPinStatus(pin);
@@ -701,7 +701,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
+            Log.i("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, mode};
@@ -722,7 +722,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
+            Log.i("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte portNumber = (byte) ((pin >> 3) & 0x0F);
@@ -751,7 +751,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
+            Log.i("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, PWM,
@@ -773,7 +773,7 @@ public class OneSheeldDevice {
         for (int pinNumber : differentPinNumbers) {
             int actualPinNumber = (portNumber << 3) + pinNumber;
             if (isPinDebuggingEnabled)
-                Log.d("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
+                Log.i("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
             for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
                 oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, getDigitalPinStatus(actualPinNumber));
             }
@@ -788,7 +788,7 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Query firmware version.");
+        Log.i("Device " + this.name + ": Query firmware version.");
         isFirmwareVersionQueried = false;
         write(REPORT_VERSION);
     }
@@ -801,7 +801,7 @@ public class OneSheeldDevice {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Query library version.");
+        Log.i("Device " + this.name + ": Query library version.");
         isLibraryVersionQueried = false;
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION));
     }
@@ -870,7 +870,7 @@ public class OneSheeldDevice {
             return;
         }
         sendMuteFrame();
-        Log.d("Device " + this.name + ": Communications muted.");
+        Log.i("Device " + this.name + ": Communications muted.");
         isMuted = true;
     }
 
@@ -895,7 +895,7 @@ public class OneSheeldDevice {
             return;
         }
         sendUnMuteFrame();
-        Log.d("Device " + this.name + ": Communications unmuted.");
+        Log.i("Device " + this.name + ": Communications unmuted.");
         isMuted = false;
     }
 
@@ -938,7 +938,7 @@ public class OneSheeldDevice {
     private void setVersion(int majorVersion, int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
-        Log.d("Device " + this.name + ": Device replied with firmware version, major: " + majorVersion + ", minor:" + minorVersion + ".");
+        Log.i("Device " + this.name + ": Device replied with firmware version, major: " + majorVersion + ", minor:" + minorVersion + ".");
         onFirmwareVersionQueryResponse(majorVersion, minorVersion);
     }
 
@@ -992,7 +992,7 @@ public class OneSheeldDevice {
                             synchronized (sendingDataLock) {
                                 sysex(BLUETOOTH_RESET, new byte[]{0x01, randomVal, complement});
                             }
-                            Log.d("Device " + this.name + ": Device requested Bluetooth reset.");
+                            Log.i("Device " + this.name + ": Device requested Bluetooth reset.");
                             closeConnection();
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
@@ -1050,7 +1050,7 @@ public class OneSheeldDevice {
      * Disconnect the device.
      */
     public void disconnect() {
-        Log.d("Device " + this.name + ": Disconnection request received.");
+        Log.i("Device " + this.name + ": Disconnection request received.");
         closeConnection();
     }
 
@@ -1058,7 +1058,7 @@ public class OneSheeldDevice {
      * Connect to the device.
      */
     public void connect() {
-        Log.d("Device " + this.name + ": Delegate the connection request to the manager.");
+        Log.i("Device " + this.name + ": Delegate the connection request to the manager.");
         manager.connect(this);
     }
 
@@ -1095,7 +1095,7 @@ public class OneSheeldDevice {
             isInACallback = false;
         }
         if (isConnected) {
-            Log.d("Device " + this.name + ": Device disconnected.");
+            Log.i("Device " + this.name + ": Device disconnected.");
             onDisconnect();
         }
     }
@@ -1146,7 +1146,7 @@ public class OneSheeldDevice {
             int bufferLength;
             Log.d("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
             initFirmware();
-            Log.d("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
+            Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
             onConnect();
             while (!this.isInterrupted()) {
                 try {
