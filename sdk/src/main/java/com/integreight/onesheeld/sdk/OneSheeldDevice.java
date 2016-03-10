@@ -917,7 +917,7 @@ public class OneSheeldDevice {
     private void setDigitalInputs(int portNumber, int portData) {
         int portDifference = digitalInputData[portNumber] ^ portData;
         digitalInputData[portNumber] = portData;
-        ArrayList<Integer> differentPinNumbers = new ArrayList();
+        ArrayList<Integer> differentPinNumbers = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
             if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
         }
