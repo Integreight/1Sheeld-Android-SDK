@@ -23,9 +23,11 @@ abstract class ArrayUtils {
 
     static byte[] copyOfRange(byte[] from, int start, int end) {
         int length = end - start;
-        byte[] result = new byte[length];
-        System.arraycopy(from, start, result, 0, length);
-        return result;
+        if (length > 0) {
+            byte[] result = new byte[length];
+            System.arraycopy(from, start, result, 0, length);
+            return result;
+        } else return new byte[]{};
     }
 
     static String toHexString(byte[] array) {
