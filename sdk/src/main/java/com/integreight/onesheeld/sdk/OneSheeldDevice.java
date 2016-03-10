@@ -748,6 +748,7 @@ public class OneSheeldDevice {
     public void testTheBoard() {
         if (hasFirmwareTestStarted || hasLibraryTestStarted) {
             Log.i("Device " + this.name + ": device is in the middle of another test.");
+            return;
         }
         Log.i("Device " + this.name + ": Testing the device, both firmware and library.");
         String currentMillis = String.valueOf(System.currentTimeMillis());
