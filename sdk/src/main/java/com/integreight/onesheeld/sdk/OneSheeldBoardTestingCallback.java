@@ -17,26 +17,42 @@
 package com.integreight.onesheeld.sdk;
 
 /**
- * Represents various version query events for {@link OneSheeldDevice}.
+ * Represents various testing events for {@link OneSheeldDevice}.
  * <p>Most of the methods here gets called in a thread different than the UI thread.
  * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  */
-public abstract class OneSheeldVersionQueryCallback {
+public abstract class OneSheeldBoardTestingCallback {
     /**
-     * This method gets called when the device responds with the firmware version.
+     * This method gets called when the device responds with an answer to the firmware challenge.
      *
-     * @param firmwareVersion the firmware version
+     * @param isPassed represents the status of the test
      */
-    public void onFirmwareVersionQueryResponse(FirmwareVersion firmwareVersion) {
+    public void onFirmwareTestResult(boolean isPassed) {
 
     }
 
     /**
-     * This method gets called when the device responds with the library version.
+     * This method gets called when the device responds with an answer to the library challenge.
      *
-     * @param libraryVersion the version
+     * @param isPassed represents the status of the test
      */
-    public void onLibraryVersionQueryResponse(int libraryVersion) {
+    public void onLibraryTestResult(boolean isPassed) {
+
+    }
+
+    /**
+     * This method gets called when the device does not respond with an answer to the firmware challenge.
+     *
+     */
+    public void onFirmwareTestTimeOut() {
+
+    }
+
+    /**
+     * This method gets called when the device does not respond with an answer to the library challenge.
+     *
+     */
+    public void onLibraryTestTimeOut() {
 
     }
 }

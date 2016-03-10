@@ -233,7 +233,7 @@ public class ShieldFrame {
         if (data == null)
             throw new NullPointerException("The passed string is null, have you checked its validity?");
         String temp = (data.length() > 255) ? data.substring(0, 255) : data;
-        arguments.add(temp.getBytes(Charset.forName("UTF-8")));
+        arguments.add(temp.getBytes(Charset.forName("US-ASCII")));
     }
 
     /**

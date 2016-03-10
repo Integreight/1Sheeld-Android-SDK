@@ -18,20 +18,20 @@ package com.integreight.onesheeld.sdk;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Build;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Represents the manager that is responsible for all Bluetooth operations.
@@ -62,7 +62,10 @@ public class OneSheeldManager {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED);
+                if(Build.VERSION.SDK_INT>=18)
+                    addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED, device.getType() == BluetoothDevice.DEVICE_TYPE_LE);
+                else
+                    addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED, false);
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 finishScanning();
             }
@@ -471,14 +474,14 @@ public class OneSheeldManager {
         }
     }
 
-    private synchronized void onConnectionStart(OneSheeldDevice device, BluetoothSocket socket) {
-        Log.d("Manager: Delegate the connection management of " + device.getName() + " to the device.");
+    private synchronized void onConnectionStart(OneSheeldDevice device, OneSheeldConnection connection) {
+        Log.i("Manager: Delegate the connection management of " + device.getName() + " to the device.");
         synchronized (connectedDevicesLock) {
             while (connectedDevices.containsKey(device.getAddress()))
                 connectedDevices.remove(device.getAddress());
             connectedDevices.put(device.getAddress(), device);
         }
-        device.connectUsing(socket);
+        device.connectUsing(connection);
         synchronized (currentStateLock) {
             currentState = ConnectionState.READY;
         }
@@ -675,7 +678,7 @@ public class OneSheeldManager {
     }
 
     private void addFoundDevice(String name, final String address,
-                                boolean isPaired) {
+                                boolean isPaired, boolean isTypePlus) {
         boolean isScanning = false;
         synchronized (currentStateLock) {
             if (currentState == ConnectionState.SCANNING) {
@@ -686,7 +689,7 @@ public class OneSheeldManager {
             resetScanningTimeOutTimer();
             if (name == null)
                 name = "";
-            OneSheeldDevice tempOneSheeldDevice = new OneSheeldDevice(address, name, isPaired);
+            OneSheeldDevice tempOneSheeldDevice = new OneSheeldDevice(address, name, isPaired, isTypePlus);
             if (tempOneSheeldDevice.getName().trim().length() > 0
                     && (tempOneSheeldDevice.getName().toLowerCase().contains("1sheeld") || tempOneSheeldDevice.getAddress()
                     .equals(tempOneSheeldDevice.getName()))) {
@@ -715,7 +718,7 @@ public class OneSheeldManager {
     }
 
     private class ConnectThread extends Thread {
-        private BluetoothSocket socket = null;
+        private OneSheeldConnection connection = null;
         private OneSheeldDevice device;
 
         ConnectThread(OneSheeldDevice device) {
@@ -728,67 +731,48 @@ public class OneSheeldManager {
             if (this.device == null) return;
             if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering())
                 bluetoothAdapter.cancelDiscovery();
-            boolean isDefaultConnectingRetriesEnabled = OneSheeldManager.this.isAutomaticConnectingRetriesEnabled;
-            int totalTries = connectionRetryCount + 1;
-            int triesCounter = isDefaultConnectingRetriesEnabled ? totalTries * 3 : totalTries;
-            boolean hasError = false;
-            do {
-                socket = isDefaultConnectingRetriesEnabled ? BluetoothUtils.getRfcommSocket(device.getBluetoothDevice(), (totalTries * 3) - triesCounter) : BluetoothUtils.getRfcommSocket(device.getBluetoothDevice());
-                if (hasError) {
-                    hasError = false;
-                    if (triesCounter % 3 == 0 | !isDefaultConnectingRetriesEnabled) {
-                        Log.d("Manager: Connection attempt to " + device.getName() + " failed, retrying again in 1.5 seconds. #" + (totalTries - (isDefaultConnectingRetriesEnabled ? (triesCounter / 3) : triesCounter)));
-                        onConnectionRetry(device, totalTries - (isDefaultConnectingRetriesEnabled ? (triesCounter / 3) : triesCounter));
+
+            final boolean isDefaultConnectingRetriesEnabled = OneSheeldManager.this.isAutomaticConnectingRetriesEnabled;
+            final int totalTries = connectionRetryCount + 1;
+            final AtomicInteger triesCounter = new AtomicInteger(totalTries);
+            if (device.isTypePlus()) connection = new LeConnection(device);
+            else connection = new ClassicConnection(device, isDefaultConnectingRetriesEnabled);
+            connection.setConnectionCallback(new BluetoothConnectionCallback() {
+                @Override
+                public void onConnectionSuccess() {
+                    Log.i("Manager: Connection to " + device.getName() + " succeeded.");
+                    onConnectionStart(device, connection);
+                }
+
+                @Override
+                public void onConnectionFailure() {
+                    triesCounter.getAndDecrement();
+                    if (triesCounter.get() > 0) {
+                        Log.i("Manager: Connection attempt to " + device.getName() + " failed, retrying again in 2 seconds. #" + (totalTries - triesCounter.get()));
+                        onConnectionRetry(device, totalTries - triesCounter.get());
                         try {
-                            Thread.sleep(1500);
+                            Thread.sleep(2000);
                         } catch (InterruptedException e) {
-                            cancel();
+                            Log.i("Manager: Connection attempt to " + device.getName() + " interrupted. Aborting.");
+                            if (connection != null) connection.close();
                             return;
                         }
-                    }
-                }
-                try {
-                    if (Thread.currentThread().isInterrupted()) {
-                        cancel();
-                        return;
-                    }
-                    if (socket != null) {
-                        Thread.sleep(500);
-                        Log.d("Manager: Trying to connect to " + device.getName() + ".");
-                        socket.connect();
+                        Log.i("Manager: Trying to connect to " + device.getName() + ".");
+                        connection.initiate();
                     } else {
-                        triesCounter--;
-                        hasError = true;
-                        continue;
+                        Log.i("Manager: All connection attempts to " + device.getName() + " failed. Aborting.");
+                        onConnectionError(device);
                     }
-                    if (Thread.currentThread().isInterrupted()) {
-                        cancel();
-                        return;
-                    }
-                } catch (InterruptedException e) {
-                    cancel();
-                    return;
-                } catch (Exception e) {
-                    triesCounter--;
-                    hasError = true;
-                    continue;
                 }
-            } while (triesCounter > 0 && hasError);
-            if (hasError) {
-                Log.d("Manager: All connection attempts to " + device.getName() + " failed. Aborting.");
-                onConnectionError(device);
-            } else {
-                Log.d("Manager: Connection to " + device.getName() + " succeeded.");
-                onConnectionStart(device, socket);
-            }
-        }
 
-        synchronized void cancel() {
-            if (socket != null)
-                try {
-                    socket.close();
-                } catch (IOException e) {
+                @Override
+                public void onConnectionInterrupt() {
+                    Log.i("Manager: Connection attempt to " + device.getName() + " interrupted. Aborting.");
+                    if (connection != null) connection.close();
                 }
+            });
+            Log.i("Manager: Trying to connect to " + device.getName() + ".");
+            connection.initiate();
         }
     }
 }

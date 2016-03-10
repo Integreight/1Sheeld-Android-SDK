@@ -18,14 +18,10 @@ package com.integreight.onesheeld.sdk;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.Build;
 import android.os.SystemClock;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -84,6 +80,8 @@ public class OneSheeldDevice {
     private final byte REPORT_VERSION = (byte) 0xF9;
     private final byte START_SYSEX = (byte) 0xF0;
     private final byte END_SYSEX = (byte) 0xF7;
+    private final byte BOARD_TESTING = (byte) 0x5D;
+    private final byte MODULE_RENAMING = (byte) 0x5E;
     private final byte REPORT_INPUT_PINS = (byte) 0x5F;
     private final byte BLUETOOTH_RESET = (byte) 0x61;
     private final byte IS_ALIVE = (byte) 0x62;
@@ -91,6 +89,8 @@ public class OneSheeldDevice {
     private final byte SERIAL_DATA = (byte) 0x66;
     private final byte CONFIGURATION_SHIELD_ID = (byte) 0x00;
     private final byte BT_CONNECTED = (byte) 0x01;
+    private final byte LIBRARY_TESTING_CHALLENGE_REQUEST = (byte) 0x04;
+    private final byte LIBRARY_TESTING_CHALLENGE_RESPONSE = (byte) 0x05;
     private final byte QUERY_LIBRARY_VERSION = (byte) 0x03;
     private final byte LIBRARY_VERSION_RESPONSE = (byte) 0x01;
     private final byte IS_HARDWARE_CONNECTED_QUERY = (byte) 0x02;
@@ -99,7 +99,6 @@ public class OneSheeldDevice {
     private final Object sendingDataLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
     private final Object isConnectedLock = new Object();
-    private final int MAX_BUFFER_SIZE = 1024;
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
@@ -119,6 +118,7 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldErrorCallback> errorCallbacks;
     private CopyOnWriteArrayList<OneSheeldDataCallback> dataCallbacks;
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
+    private CopyOnWriteArrayList<OneSheeldBoardTestingCallback> testingCallbacks;
     private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
     private TimeOut callbacksTimeout;
@@ -138,6 +138,13 @@ public class OneSheeldDevice {
     private int[] digitalOutputData = {0, 0, 0};
     private int[] digitalInputData = {0, 0, 0};
     private boolean isPinDebuggingEnabled;
+    private boolean isTypePlus;
+    private byte correctTestingChallengeAnswer;
+    private boolean hasFirmwareTestStarted;
+    private boolean hasLibraryTestStarted;
+    private TimeOut firmwareTestingTimeout;
+    private TimeOut libraryTestingTimeout;
+
 
     /**
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
@@ -152,6 +159,25 @@ public class OneSheeldDevice {
         this.name = address;
         this.address = address;
         this.isPaired = false;
+        this.isTypePlus = false;
+        initialize();
+    }
+
+    /**
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
+     * <p>The name of the device will be the same as the address.</p>
+     *
+     * @param address the Bluetooth address of the device
+     * @param isTypePlus explicitly determine if this 1Sheeld is the plus version (BLE)
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
+     */
+    public OneSheeldDevice(String address, boolean isTypePlus) {
+        checkBluetoothAddress(address);
+        this.name = address;
+        this.address = address;
+        this.isPaired = false;
+        this.isTypePlus = isTypePlus;
         initialize();
     }
 
@@ -167,15 +193,34 @@ public class OneSheeldDevice {
         checkBluetoothAddress(address);
         this.name = name;
         this.address = address;
-        isPaired = false;
+        this.isPaired = false;
+        this.isTypePlus = false;
         initialize();
     }
 
-    OneSheeldDevice(String address, String name, boolean isPaired) {
+    /**
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
+     *
+     * @param address the Bluetooth address of the device
+     * @param isTypePlus explicitly determine if this 1Sheeld is the plus version (BLE)
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
+     */
+    public OneSheeldDevice(String address, String name, boolean isTypePlus) {
+        checkBluetoothAddress(address);
+        this.name = name;
+        this.address = address;
+        this.isPaired = false;
+        this.isTypePlus = isTypePlus;
+        initialize();
+    }
+
+    OneSheeldDevice(String address, String name, boolean isPaired, boolean isTypePlus) {
         checkBluetoothAddress(address);
         this.name = name;
         this.address = address;
         this.isPaired = isPaired;
+        this.isTypePlus = isTypePlus;
         initialize();
     }
 
@@ -189,6 +234,7 @@ public class OneSheeldDevice {
         errorCallbacks = new CopyOnWriteArrayList<>();
         dataCallbacks = new CopyOnWriteArrayList<>();
         versionQueryCallbacks = new CopyOnWriteArrayList<>();
+        testingCallbacks=new CopyOnWriteArrayList<>();
         queuedFrames = new ConcurrentLinkedQueue<>();
         isMuted = false;
         arduinoLibraryVersion = 0;
@@ -203,12 +249,16 @@ public class OneSheeldDevice {
         multiByteChannel = 0;
         storedInputData = new byte[MAX_DATA_BYTES];
         isPinDebuggingEnabled = false;
+        correctTestingChallengeAnswer=0;
+        hasFirmwareTestStarted =false;
+        hasLibraryTestStarted =false;
     }
 
     /**
      * Sets the pin debugging logging messages.
      * <p>The OneSheeldSdk.setDebugging() should be enabled first</p>
      * <p>This includes huge messages if the 1Sheeld pins are floating.</p>
+     *
      * @param isPinDebuggingEnabled the required state of the flag
      */
     public void setPinsDebugging(boolean isPinDebuggingEnabled) {
@@ -274,6 +324,16 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Add a testing callback.
+     *
+     * @param testingCallback the testing callback
+     */
+    public void addTestingCallback(OneSheeldBoardTestingCallback testingCallback) {
+        if (testingCallback != null && !testingCallbacks.contains(testingCallback))
+            testingCallbacks.add(testingCallback);
+    }
+
+    /**
      * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
@@ -291,6 +351,16 @@ public class OneSheeldDevice {
     public void removeErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && errorCallbacks.contains(errorCallback))
             errorCallbacks.remove(errorCallback);
+    }
+
+    /**
+     * Remove a testing callback.
+     *
+     * @param testingCallback the testing callback
+     */
+    public void removeTestingCallback(OneSheeldBoardTestingCallback testingCallback) {
+        if (testingCallback != null && testingCallbacks.contains(testingCallback))
+            testingCallbacks.remove(testingCallback);
     }
 
     /**
@@ -394,10 +464,10 @@ public class OneSheeldDevice {
         this.isPaired = isPaired;
     }
 
-    synchronized void connectUsing(BluetoothSocket socket) {
+    synchronized void connectUsing(OneSheeldConnection connection) {
         try {
             closeConnection();
-            connectedThread = new ConnectedThread(socket);
+            connectedThread = new ConnectedThread(connection);
             connectedThread.start();
         } catch (IllegalArgumentException e) {
             return;
@@ -657,6 +727,43 @@ public class OneSheeldDevice {
         synchronized (sendingDataLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
+    }
+
+    public void renameTheBoard(String name) {
+        if (name == null || name.length() <= 0) return;
+        if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
+        else name = (name.length() > 14) ? name.substring(0, 14) : name;
+        Log.i("Device " + this.name + ": Renaming the device to \"" + name + "\".");
+        this.name = name;
+        synchronized (sendingDataLock) {
+            sysex(MODULE_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
+        }
+    }
+
+    public void testTheBoard() {
+        if(hasFirmwareTestStarted || hasLibraryTestStarted) {
+            Log.i("Device " + this.name + ": device is in the middle of another test.");
+        }
+        Log.i("Device " + this.name + ": testing the device, both firmware and library.");
+        String currentMillis = String.valueOf(System.currentTimeMillis());
+        byte[] bytes = currentMillis.getBytes(Charset.forName("US-ASCII"));
+        int correctAnswer = 0;
+        for (byte byteValue : bytes) {
+            correctAnswer += (byteValue & 0xFF);
+
+        }
+        correctTestingChallengeAnswer = (byte) (correctAnswer % 256);
+        hasFirmwareTestStarted =true;
+        synchronized (sendingDataLock) {
+            sysex(BOARD_TESTING, bytes);
+        }
+        initFirmwareTestingTimeOut();
+        hasLibraryTestStarted =true;
+        ShieldFrame testingFrame=new ShieldFrame(CONFIGURATION_SHIELD_ID, LIBRARY_TESTING_CHALLENGE_REQUEST);
+        testingFrame.addArgument("Are you ok?");
+        testingFrame.addArgument(bytes);
+        sendShieldFrame(testingFrame);
+        initLibraryTestingTimeOut();
     }
 
     private void setAllPinsAsInput() {
@@ -996,6 +1103,11 @@ public class OneSheeldDevice {
                             closeConnection();
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
+                        }else if (sysexCommand == BOARD_TESTING) {
+                            stopFirmwareTestingTimeOut();
+                            hasFirmwareTestStarted = false;
+                            for(OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback:testingCallbacks)
+                                oneSheeldBoardTestingCallback.onFirmwareTestResult(fixedSysexData.length==1&&fixedSysexData[0]==correctTestingChallengeAnswer);
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
@@ -1100,235 +1212,236 @@ public class OneSheeldDevice {
         }
     }
 
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
-        Handler writeHandler;
-        Looper writeHandlerLooper;
-        Thread LooperThread;
+    public boolean isTypePlus() {
+        return Build.VERSION.SDK_INT >= 18 && (isTypePlus || bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE);
+    }
 
-        ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-            try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) {
+    private void stopFirmwareTestingTimeOut() {
+        if (firmwareTestingTimeout != null)
+            firmwareTestingTimeout.stopTimer();
+    }
+
+    private void initFirmwareTestingTimeOut() {
+        stopFirmwareTestingTimeOut();
+        firmwareTestingTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                hasFirmwareTestStarted=false;
+                for(OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback:testingCallbacks)
+                    oneSheeldBoardTestingCallback.onFirmwareTestTimeOut();
             }
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
+    }
+
+    private void stopLibraryTestingTimeOut() {
+        if (libraryTestingTimeout != null)
+            libraryTestingTimeout.stopTimer();
+    }
+
+    private void initLibraryTestingTimeOut() {
+        stopLibraryTestingTimeOut();
+        libraryTestingTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                hasLibraryTestStarted=false;
+                for(OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback:testingCallbacks)
+                    oneSheeldBoardTestingCallback.onLibraryTestTimeOut();
+            }
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
+    }
+
+    private class ConnectedThread extends Thread {
+        private final OneSheeldConnection connection;
+
+        ConnectedThread(OneSheeldConnection connection) {
+            this.connection = connection;
+            if(connection!=null) connection.setConnectionErrorCallback(new BluetoothConnectionErrorCallback() {
+                @Override
+                public void onConnectionError() {
+                    closeConnection();
+                }
+            });
             setName("OneSheeldConnectedReadThread: " + OneSheeldDevice.this.getName());
         }
 
         @Override
         public void run() {
-            if (mmSocket == null) return;
-            Log.d("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
-            LooperThread = new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    Looper.prepare();
-                    writeHandlerLooper = Looper.myLooper();
-                    writeHandler = new Handler();
-                    Looper.loop();
-                }
-            });
-            LooperThread.setName("OneSheeldConnectedWriteThread: " + OneSheeldDevice.this.getName());
-            LooperThread.start();
-            while (!LooperThread.isAlive()) ;
+            if (connection == null) return;
+            Log.i("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
             synchronized (isConnectedLock) {
                 isConnected = true;
             }
-            byte[] buffer = new byte[MAX_BUFFER_SIZE];
-            int bufferLength;
-            Log.d("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
+            Log.i("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
             initFirmware();
             Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
             onConnect();
             while (!this.isInterrupted()) {
-                try {
-                    bufferLength = mmInStream.read(buffer, 0, buffer.length);
-                    bufferLength = bufferLength >= buffer.length ? buffer.length : bufferLength;
-                    for (int i = 0; i < bufferLength; i++) {
-                        bluetoothBuffer.add(buffer[i]);
-                    }
-                } catch (IOException e) {
-                    if (writeHandlerLooper != null)
-                        writeHandlerLooper.quit();
-                    closeConnection();
-                    break;
+                byte[] readBytes = connection.read();
+                for (byte readByte : readBytes) {
+                    bluetoothBuffer.add(readByte);
                 }
             }
         }
 
         private synchronized void write(final byte[] buffer) {
-            if (writeHandler == null)
-                return;
-            writeHandler.post(new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        mmOutStream.write(buffer);
-                    } catch (IOException e) {
-                        if (writeHandlerLooper != null)
-                            writeHandlerLooper.quit();
-                        closeConnection();
-                    }
-                }
-            });
+            if (connection != null) connection.write(buffer);
         }
 
         synchronized void cancel() {
-            if (writeHandlerLooper != null) {
-                writeHandlerLooper.quit();
-            }
-            if (mmInStream != null)
-                try {
-                    mmInStream.close();
-                } catch (IOException ignored) {
-                }
-            if (mmOutStream != null)
-                try {
-                    mmOutStream.close();
-                } catch (IOException e) {
-                }
-            if (mmSocket != null)
-                try {
-                    mmSocket.close();
-                } catch (IOException ignored) {
-                }
+            if (connection != null) connection.close();
         }
     }
+        private class BluetoothBufferListeningThread extends Thread {
+            BluetoothBufferListeningThread() {
+                setName("BluetoothBufferListeningThread: " + OneSheeldDevice.this.getName());
+                start();
+            }
 
-    private class BluetoothBufferListeningThread extends Thread {
-        BluetoothBufferListeningThread() {
-            setName("BluetoothBufferListeningThread: " + OneSheeldDevice.this.getName());
-            start();
-        }
+            private void stopRunning() {
+                if (this.isAlive())
+                    this.interrupt();
+            }
 
-        private void stopRunning() {
-            if (this.isAlive())
-                this.interrupt();
-        }
-
-        @Override
-        public void run() {
-            int input;
-            while (!this.isInterrupted()) {
-                try {
-                    input = readByteFromBluetoothBuffer();
-                    processInput((byte) input);
-                } catch (InterruptedException e) {
-                    return;
+            @Override
+            public void run() {
+                int input;
+                while (!this.isInterrupted()) {
+                    try {
+                        input = readByteFromBluetoothBuffer();
+                        processInput((byte) input);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
                 }
             }
         }
-    }
 
-    private class SerialBufferListeningThread extends Thread {
-        SerialBufferListeningThread() {
-            setName("SerialBufferListeningThread: " + OneSheeldDevice.this.getName());
-            start();
-        }
+        private class SerialBufferListeningThread extends Thread {
+            SerialBufferListeningThread() {
+                setName("SerialBufferListeningThread: " + OneSheeldDevice.this.getName());
+                start();
+            }
 
-        private void stopRunning() {
-            if (this.isAlive())
-                this.interrupt();
-        }
+            private void stopRunning() {
+                if (this.isAlive())
+                    this.interrupt();
+            }
 
-        @Override
-        public void run() {
-            while (!this.isInterrupted()) {
-                try {
-                    while ((readByteFromSerialBuffer()) != ShieldFrame.START_OF_FRAME)
-                        ;
-                    if (ShieldFrameTimeout != null)
-                        ShieldFrameTimeout.stopTimer();
-                    ShieldFrameTimeout = new TimeOut(1000);
-                    int tempArduinoLibVersion = readByteFromSerialBuffer();
-                    byte shieldId = readByteFromSerialBuffer();
-                    byte instanceId = readByteFromSerialBuffer();
-                    byte functionId = readByteFromSerialBuffer();
-                    ShieldFrame frame = new ShieldFrame(shieldId,functionId);
-                    int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
-                    int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
-                    if (argumentsNumber != argumentsNumberVerification) {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+            @Override
+            public void run() {
+                while (!this.isInterrupted()) {
+                    try {
+                        while ((readByteFromSerialBuffer()) != ShieldFrame.START_OF_FRAME)
+                            ;
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        serialBuffer.clear();
-                        continue;
-                    }
-                    boolean continueRequested=false;
-                    for (int i = 0; i < argumentsNumber; i++) {
-                        int length = readByteFromSerialBuffer() & 0xFF;
-                        int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
-                        if (length != lengthVerification || length <= 0) {
-                            Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                        ShieldFrameTimeout = new TimeOut(2000);
+                        int tempArduinoLibVersion = readByteFromSerialBuffer();
+                        byte shieldId = readByteFromSerialBuffer();
+                        byte instanceId = readByteFromSerialBuffer();
+                        byte functionId = readByteFromSerialBuffer();
+                        ShieldFrame frame = new ShieldFrame(shieldId, functionId);
+                        int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
+                        int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
+                        if (argumentsNumber != argumentsNumberVerification) {
+                            Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
                             serialBuffer.clear();
-                            continueRequested=true;
-                            break;
+                            continue;
                         }
-                        byte[] data = new byte[length];
-                        for (int j = 0; j < length; j++) {
-                            data[j] = readByteFromSerialBuffer();
+                        boolean continueRequested = false;
+                        for (int i = 0; i < argumentsNumber; i++) {
+                            int length = readByteFromSerialBuffer() & 0xFF;
+                            int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
+                            if (length != lengthVerification || length <= 0) {
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                                if (ShieldFrameTimeout != null)
+                                    ShieldFrameTimeout.stopTimer();
+                                serialBuffer.clear();
+                                continueRequested = true;
+                                break;
+                            }
+                            byte[] data = new byte[length];
+                            for (int j = 0; j < length; j++) {
+                                data[j] = readByteFromSerialBuffer();
+                            }
+                            frame.addArgument(data);
                         }
-                        frame.addArgument(data);
-                    }
-                    if(continueRequested)continue;
-                    if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                        if (continueRequested) continue;
+                        if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
+                            Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                            if (ShieldFrameTimeout != null)
+                                ShieldFrameTimeout.stopTimer();
+                            serialBuffer.clear();
+                            continue;
+                        }
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        serialBuffer.clear();
+                        if (arduinoLibraryVersion != tempArduinoLibVersion) {
+                            arduinoLibraryVersion = tempArduinoLibVersion;
+                            isLibraryVersionQueried = true;
+                            Log.i("Device " + OneSheeldDevice.this.name + ": Device replied with library version: " + arduinoLibraryVersion + ".");
+                            onLibraryVersionQueryResponse(arduinoLibraryVersion);
+                        }
+
+                        if (shieldId == CONFIGURATION_SHIELD_ID) {
+                            if (functionId == LIBRARY_VERSION_RESPONSE) {
+                            } else if (functionId == IS_HARDWARE_CONNECTED_QUERY) {
+                                notifyHardwareOfConnection();
+                            } else if (functionId == IS_CALLBACK_ENTERED) {
+                                callbackEntered();
+                            } else if (functionId == IS_CALLBACK_EXITED) {
+                                callbackExited();
+                            } else if(functionId == LIBRARY_TESTING_CHALLENGE_RESPONSE){
+                                hasLibraryTestStarted=false;
+                                boolean isTestResultCorrect=false;
+                                try {
+                                    if (frame.getArguments().size() == 2) {
+                                        if (frame.getArgumentAsString(0).equals("Yup, I’m feeling great!")) {
+                                            if (frame.getArgument(1).length == 1 && frame.getArgument(1)[0] == correctTestingChallengeAnswer) {
+                                                isTestResultCorrect = true;
+                                            }
+                                        }
+                                    }
+                                }catch (Exception ignored){
+                                }
+                                for(OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback:testingCallbacks)
+                                    oneSheeldBoardTestingCallback.onLibraryTestResult(isTestResultCorrect);
+                            }
+                        } else {
+                            Log.i("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
+                            for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+                                oneSheeldDataCallback.onShieldFrameReceive(frame);
+                                if (OneSheeldSdk.getKnownShields().contains(shieldId) &&
+                                        OneSheeldSdk.getKnownShields().getKnownShield(shieldId).getKnownFunctions().contains(KnownFunction.getFunctionWithId(functionId)))
+                                    oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        return;
+                    } catch (ShieldFrameNotComplete e) {
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");
+                        if (ShieldFrameTimeout != null)
+                            ShieldFrameTimeout.stopTimer();
+                        ShieldFrameTimeout = null;
                         continue;
                     }
-                    if (ShieldFrameTimeout != null)
-                        ShieldFrameTimeout.stopTimer();
-                    if (arduinoLibraryVersion != tempArduinoLibVersion) {
-                        arduinoLibraryVersion = tempArduinoLibVersion;
-                        isLibraryVersionQueried = true;
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Device replied with library version: " + arduinoLibraryVersion + ".");
-                        onLibraryVersionQueryResponse(arduinoLibraryVersion);
-                    }
-
-                    if (shieldId == CONFIGURATION_SHIELD_ID) {
-                        if (functionId == LIBRARY_VERSION_RESPONSE) {
-                        } else if (functionId == IS_HARDWARE_CONNECTED_QUERY) {
-                            notifyHardwareOfConnection();
-                        } else if (functionId == IS_CALLBACK_ENTERED) {
-                            callbackEntered();
-                        } else if (functionId == IS_CALLBACK_EXITED) {
-                            callbackExited();
-                        }
-                    } else {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
-                        for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                            oneSheeldDataCallback.onShieldFrameReceive(frame);
-                            if (OneSheeldSdk.getKnownShields().contains(shieldId) &&
-                                    OneSheeldSdk.getKnownShields().getKnownShield(shieldId).getKnownFunctions().contains(KnownFunction.getFunctionWithId(functionId)))
-                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    return;
-                } catch (ShieldFrameNotComplete e) {
-                    Log.d("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");
-                    if (ShieldFrameTimeout != null)
-                        ShieldFrameTimeout.stopTimer();
-                    ShieldFrameTimeout = null;
-                    continue;
                 }
             }
         }
+
+        private class ShieldFrameNotComplete extends Exception {
+        }
     }
 
-    private class ShieldFrameNotComplete extends Exception {
-    }
-}
