@@ -8,7 +8,6 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.os.Build;
 
-import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -106,7 +105,7 @@ public class LeConnection extends OneSheeldConnection {
         this.isConnectionSuccessful = false;
     }
 
-    private void notifyConnectionFailure(){
+    private void notifyConnectionFailure() {
         synchronized (connectionLock) {
             hasGattCallbackReplied = true;
             isConnectionSuccessful = false;
@@ -114,7 +113,7 @@ public class LeConnection extends OneSheeldConnection {
         }
     }
 
-    private void notifyConnectionSuccess(){
+    private void notifyConnectionSuccess() {
         synchronized (connectionLock) {
             hasGattCallbackReplied = true;
             isConnectionSuccessful = true;
@@ -153,7 +152,8 @@ public class LeConnection extends OneSheeldConnection {
 
     @Override
     synchronized byte[] read() {
-        if (bluetoothGatt == null || readBuffer.isEmpty() || !hasGattCallbackReplied || !isConnectionSuccessful) return new byte[]{};
+        if (bluetoothGatt == null || readBuffer.isEmpty() || !hasGattCallbackReplied || !isConnectionSuccessful)
+            return new byte[]{};
         byte[] buffer = new byte[MAX_BUFFER_SIZE];
         int readBufferSize = readBuffer.size();
         int readBytesLength;

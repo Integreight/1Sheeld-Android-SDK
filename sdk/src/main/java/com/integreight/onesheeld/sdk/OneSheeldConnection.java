@@ -11,7 +11,7 @@ abstract class OneSheeldConnection {
     private BluetoothConnectionErrorCallback connectionErrorCallback;
     private OneSheeldDevice device;
 
-//    private Handler backgroundHandler;
+    //    private Handler backgroundHandler;
 //    private Looper backgroundHandlerLooper;
 //    private Handler mainThreadHandler;
 //
@@ -55,10 +55,9 @@ abstract class OneSheeldConnection {
 //                }
 //            });
 //        } else {
-            if(onConnectionInitiationRequest()){
-                connectionSuccess();
-            }
-            else connectionFailure();
+        if (onConnectionInitiationRequest()) {
+            connectionSuccess();
+        } else connectionFailure();
 //        }
     }
 
@@ -125,7 +124,7 @@ abstract class OneSheeldConnection {
         }
     }
 
-    protected final boolean isConnectionCallbackCalled(){
+    protected final boolean isConnectionCallbackCalled() {
         return isConnectionCallbackCalled;
     }
 

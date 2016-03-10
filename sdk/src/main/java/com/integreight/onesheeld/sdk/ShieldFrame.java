@@ -245,10 +245,10 @@ public class ShieldFrame {
     }
 
 
-    private byte getNewVerificationByte(){
-        int randomValue= (int) Math.round((Math.random()*15));
-        randomValue=randomValue|((15-randomValue)<<4);
-        return (byte)randomValue;
+    private byte getNewVerificationByte() {
+        int randomValue = (int) Math.round((Math.random() * 15));
+        randomValue = randomValue | ((15 - randomValue) << 4);
+        return (byte) randomValue;
     }
 
     /**

@@ -42,7 +42,6 @@ public abstract class OneSheeldBoardTestingCallback {
 
     /**
      * This method gets called when the device does not respond with an answer to the firmware challenge.
-     *
      */
     public void onFirmwareTestTimeOut() {
 
@@ -50,7 +49,6 @@ public abstract class OneSheeldBoardTestingCallback {
 
     /**
      * This method gets called when the device does not respond with an answer to the library challenge.
-     *
      */
     public void onLibraryTestTimeOut() {
 
