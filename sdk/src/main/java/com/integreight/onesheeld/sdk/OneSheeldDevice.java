@@ -81,7 +81,7 @@ public class OneSheeldDevice {
     private final byte START_SYSEX = (byte) 0xF0;
     private final byte END_SYSEX = (byte) 0xF7;
     private final byte BOARD_TESTING = (byte) 0x5D;
-    private final byte MODULE_RENAMING = (byte) 0x5E;
+    private final byte BOARD_RENAMING = (byte) 0x5E;
     private final byte REPORT_INPUT_PINS = (byte) 0x5F;
     private final byte BLUETOOTH_RESET = (byte) 0x61;
     private final byte IS_ALIVE = (byte) 0x62;
@@ -144,6 +144,9 @@ public class OneSheeldDevice {
     private boolean hasLibraryTestStarted;
     private TimeOut firmwareTestingTimeout;
     private TimeOut libraryTestingTimeout;
+    private TimeOut renamingBoardTimeout;
+    private int renamingRetries;
+    private String pendingName;
 
 
     /**
@@ -249,9 +252,10 @@ public class OneSheeldDevice {
         multiByteChannel = 0;
         storedInputData = new byte[MAX_DATA_BYTES];
         isPinDebuggingEnabled = false;
-        correctTestingChallengeAnswer=0;
-        hasFirmwareTestStarted =false;
-        hasLibraryTestStarted =false;
+        correctTestingChallengeAnswer = 0;
+        hasFirmwareTestStarted = false;
+        hasLibraryTestStarted = false;
+        renamingRetries = 2;
     }
 
     /**
@@ -733,11 +737,12 @@ public class OneSheeldDevice {
         if (name == null || name.length() <= 0) return;
         if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
         else name = (name.length() > 14) ? name.substring(0, 14) : name;
-        Log.i("Device " + this.name + ": Renaming the device to \"" + name + "\".");
-        this.name = name;
+        pendingName = name;
+        renamingRetries = 2;
         synchronized (sendingDataLock) {
-            sysex(MODULE_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
+            sysex(BOARD_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
         }
+        initRenamingBoardTimeOut();
     }
 
     public void testTheBoard() {
@@ -1103,11 +1108,15 @@ public class OneSheeldDevice {
                             closeConnection();
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
-                        }else if (sysexCommand == BOARD_TESTING) {
+                        } else if (sysexCommand == BOARD_TESTING) {
                             stopFirmwareTestingTimeOut();
                             hasFirmwareTestStarted = false;
-                            for(OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback:testingCallbacks)
-                                oneSheeldBoardTestingCallback.onFirmwareTestResult(fixedSysexData.length==1&&fixedSysexData[0]==correctTestingChallengeAnswer);
+                            for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
+                                oneSheeldBoardTestingCallback.onFirmwareTestResult(fixedSysexData.length == 1 && fixedSysexData[0] == correctTestingChallengeAnswer);
+                        } else if (sysexCommand == BOARD_RENAMING) {
+                            Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
+                            this.name = pendingName;
+                            stopRenamingBoardTimeOut();
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
@@ -1214,6 +1223,32 @@ public class OneSheeldDevice {
 
     public boolean isTypePlus() {
         return Build.VERSION.SDK_INT >= 18 && (isTypePlus || bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE);
+    }
+
+    private void stopRenamingBoardTimeOut() {
+        if (renamingBoardTimeout != null)
+            renamingBoardTimeout.stopTimer();
+    }
+
+    private void initRenamingBoardTimeOut() {
+        stopRenamingBoardTimeOut();
+        renamingBoardTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                if (renamingRetries > 0) {
+                    renamingRetries--;
+                    Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
+                    renameTheBoard(pendingName);
+                } else {
+                    Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting");
+                }
+            }
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
     }
 
     private void stopFirmwareTestingTimeOut() {
