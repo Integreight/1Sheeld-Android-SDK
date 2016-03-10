@@ -419,12 +419,16 @@ public class OneSheeldDevice {
      * @param dataCallback         the data callback
      * @param versionQueryCallback the version query callback
      * @param errorCallback        the error callback
+     * @param testingCallback      the testing callback
+     * @param renamingCallback     the renaming callback
      */
-    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback) {
+    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback, OneSheeldBoardTestingCallback testingCallback, OneSheeldBoardRenamingCallback renamingCallback) {
         addConnectionCallback(connectionCallback);
         addErrorCallback(errorCallback);
         addDataCallback(dataCallback);
         addVersionQueryCallback(versionQueryCallback);
+        addTestingCallback(testingCallback);
+        addRenamingCallback(renamingCallback);
     }
 
     private void clearAllBuffers() {
@@ -1314,6 +1318,7 @@ public class OneSheeldDevice {
             @Override
             public void onTimeOut() {
                 hasFirmwareTestStarted = false;
+                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing time-outed.");
                 for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
                     oneSheeldBoardTestingCallback.onFirmwareTestTimeOut();
             }
@@ -1336,6 +1341,7 @@ public class OneSheeldDevice {
             @Override
             public void onTimeOut() {
                 hasLibraryTestStarted = false;
+                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing time-outed.");
                 for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
                     oneSheeldBoardTestingCallback.onLibraryTestTimeOut();
             }
@@ -1505,6 +1511,10 @@ public class OneSheeldDevice {
                                 }
                             } catch (Exception ignored) {
                             }
+                            if (isTestResultCorrect)
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing succeeded.");
+                            else
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
                             for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
                                 oneSheeldBoardTestingCallback.onLibraryTestResult(isTestResultCorrect);
                         }
