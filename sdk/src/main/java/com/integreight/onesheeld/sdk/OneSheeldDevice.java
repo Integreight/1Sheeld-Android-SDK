@@ -119,6 +119,7 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldDataCallback> dataCallbacks;
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
     private CopyOnWriteArrayList<OneSheeldBoardTestingCallback> testingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldBoardRenamingCallback> renamingCallbacks;
     private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
     private TimeOut callbacksTimeout;
@@ -147,6 +148,8 @@ public class OneSheeldDevice {
     private TimeOut renamingBoardTimeout;
     private int renamingRetries;
     private String pendingName;
+    private boolean hasBoardRenamingStarted;
+    private final int MAX_RENAMING_RETRIES_NUMBER = 2;
 
 
     /**
@@ -238,6 +241,7 @@ public class OneSheeldDevice {
         dataCallbacks = new CopyOnWriteArrayList<>();
         versionQueryCallbacks = new CopyOnWriteArrayList<>();
         testingCallbacks = new CopyOnWriteArrayList<>();
+        renamingCallbacks = new CopyOnWriteArrayList<>();
         queuedFrames = new ConcurrentLinkedQueue<>();
         isMuted = false;
         arduinoLibraryVersion = 0;
@@ -255,7 +259,8 @@ public class OneSheeldDevice {
         correctTestingChallengeAnswer = 0;
         hasFirmwareTestStarted = false;
         hasLibraryTestStarted = false;
-        renamingRetries = 2;
+        hasBoardRenamingStarted = false;
+        renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
     }
 
     /**
@@ -338,6 +343,16 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Add a renaming callback.
+     *
+     * @param renamingCallback the renaming callback
+     */
+    public void addRenamingCallback(OneSheeldBoardRenamingCallback renamingCallback) {
+        if (renamingCallback != null && !renamingCallbacks.contains(renamingCallback))
+            renamingCallbacks.add(renamingCallback);
+    }
+
+    /**
      * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
@@ -355,6 +370,16 @@ public class OneSheeldDevice {
     public void removeErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && errorCallbacks.contains(errorCallback))
             errorCallbacks.remove(errorCallback);
+    }
+
+    /**
+     * Remove a renaming callback.
+     *
+     * @param renamingCallback the renaming callback
+     */
+    public void removeRenamingCallback(OneSheeldBoardRenamingCallback renamingCallback) {
+        if (renamingCallback != null && renamingCallbacks.contains(renamingCallback))
+            renamingCallbacks.remove(renamingCallback);
     }
 
     /**
@@ -734,11 +759,21 @@ public class OneSheeldDevice {
     }
 
     public void renameTheBoard(String name) {
+        if (name == null || name.length() <= 0 || hasBoardRenamingStarted) {
+            Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
+            return;
+        }
+        renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+        hasBoardRenamingStarted = true;
+        sendBoardRenamingRequest(name);
+    }
+
+    private void sendBoardRenamingRequest(String name) {
         if (name == null || name.length() <= 0) return;
         if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
         else name = (name.length() > 14) ? name.substring(0, 14) : name;
+        Log.i("Device " + this.name + ": Trying to rename the device to \"" + name + "\".");
         pendingName = name;
-        renamingRetries = 2;
         synchronized (sendingDataLock) {
             sysex(BOARD_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
         }
@@ -1112,12 +1147,20 @@ public class OneSheeldDevice {
                         } else if (sysexCommand == BOARD_TESTING) {
                             stopFirmwareTestingTimeOut();
                             hasFirmwareTestStarted = false;
+                            boolean isPassed = fixedSysexData.length == 1 && fixedSysexData[0] == correctTestingChallengeAnswer;
+                            if (isPassed)
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing succeeded.");
+                            else
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing failed.");
                             for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                                oneSheeldBoardTestingCallback.onFirmwareTestResult(fixedSysexData.length == 1 && fixedSysexData[0] == correctTestingChallengeAnswer);
+                                oneSheeldBoardTestingCallback.onFirmwareTestResult(isPassed);
                         } else if (sysexCommand == BOARD_RENAMING) {
                             Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
                             this.name = pendingName;
                             stopRenamingBoardTimeOut();
+                            for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                                renamingCallback.onRenamingRequestReceivedSuccessfully();
+                            }
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
@@ -1239,9 +1282,17 @@ public class OneSheeldDevice {
                 if (renamingRetries > 0) {
                     renamingRetries--;
                     Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
-                    renameTheBoard(pendingName);
+                    for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                        renamingCallback.onRenamingAttemptTimeOut();
+                    }
+                    sendBoardRenamingRequest(pendingName);
                 } else {
-                    Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting");
+                    renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+                    hasBoardRenamingStarted = false;
+                    Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting.");
+                    for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                        renamingCallback.onAllRenamingAttemptsTimeOut();
+                    }
                 }
             }
 
