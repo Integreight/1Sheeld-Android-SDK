@@ -1161,6 +1161,7 @@ public class OneSheeldDevice {
                         } else if (sysexCommand == BOARD_RENAMING) {
                             Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
                             this.name = pendingName;
+                            hasBoardRenamingStarted = false;
                             stopRenamingBoardTimeOut();
                             for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
                                 renamingCallback.onRenamingRequestReceivedSuccessfully();
@@ -1243,27 +1244,28 @@ public class OneSheeldDevice {
     }
 
     private synchronized void closeConnection() {
-        stopBuffersThreads();
-        if (connectedThread != null) {
-            connectedThread.cancel();
-            connectedThread.interrupt();
-            connectedThread = null;
-        }
         boolean isConnected;
         synchronized (isConnectedLock) {
             isConnected = this.isConnected;
             this.isConnected = false;
         }
-        if (callbacksTimeout != null) callbacksTimeout.stopTimer();
-        if (exitingCallbacksThread != null && exitingCallbacksThread.isAlive())
-            exitingCallbacksThread.interrupt();
-        if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
-            enteringCallbacksThread.interrupt();
-        queuedFrames.clear();
-        synchronized (arduinoCallbacksLock) {
-            isInACallback = false;
-        }
         if (isConnected) {
+            stopBuffersThreads();
+            if (connectedThread != null) {
+                connectedThread.interrupt();
+                connectedThread.cancel();
+                connectedThread = null;
+            }
+            if (callbacksTimeout != null) callbacksTimeout.stopTimer();
+            if (exitingCallbacksThread != null && exitingCallbacksThread.isAlive())
+                exitingCallbacksThread.interrupt();
+            if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
+                enteringCallbacksThread.interrupt();
+            queuedFrames.clear();
+            synchronized (arduinoCallbacksLock) {
+                isInACallback = false;
+            }
+
             Log.i("Device " + this.name + ": Device disconnected.");
             onDisconnect();
         }
@@ -1359,9 +1361,9 @@ public class OneSheeldDevice {
         ConnectedThread(OneSheeldConnection connection) {
             this.connection = connection;
             if (connection != null)
-                connection.setConnectionErrorCallback(new BluetoothConnectionErrorCallback() {
+                connection.setConnectionCloseCallback(new BluetoothConnectionCloseCallback() {
                     @Override
-                    public void onConnectionError() {
+                    public void onConnectionClose() {
                         closeConnection();
                     }
                 });

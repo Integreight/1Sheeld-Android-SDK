@@ -28,17 +28,17 @@ public class LeConnection extends OneSheeldConnection {
     private final Object connectionLock;
     private boolean hasGattCallbackReplied;
     private boolean isConnectionSuccessful;
-    private byte[] byteArrayInProgress;
     BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 gatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                bluetoothGatt.close();
-                bluetoothGatt = null;
                 if (!isConnectionCallbackCalled()) {
                     notifyConnectionFailure();
+                }
+                else {
+                    close();
                 }
             }
         }
@@ -137,7 +137,7 @@ public class LeConnection extends OneSheeldConnection {
                 writeBuffer.add(subArray);
             }
             while (!writeBuffer.isEmpty()) {
-                byteArrayInProgress = writeBuffer.poll();
+                byte[] byteArrayInProgress = writeBuffer.poll();
                 while (!commChar.setValue(byteArrayInProgress)) ;
                 bluetoothGatt.writeCharacteristic(commChar);
                 try {
@@ -194,7 +194,8 @@ public class LeConnection extends OneSheeldConnection {
                     bluetoothGatt.setCharacteristicNotification(commChar, false);
                 }
             }
-            bluetoothGatt.disconnect();
+            bluetoothGatt.close();
+            bluetoothGatt = null;
         }
         readBuffer.clear();
         synchronized (writeBuffer) {
