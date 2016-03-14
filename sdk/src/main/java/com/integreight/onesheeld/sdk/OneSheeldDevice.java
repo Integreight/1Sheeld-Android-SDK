@@ -768,8 +768,7 @@ public class OneSheeldDevice {
         else if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        }
-        else if(hasBoardRenamingStarted) {
+        } else if (hasBoardRenamingStarted) {
             Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
             return;
         }
@@ -794,8 +793,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        }
-        else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
+        } else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
             Log.i("Device " + this.name + ": device is in the middle of another test.");
             return;
         }
