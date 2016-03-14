@@ -29,12 +29,10 @@ abstract class BitsUtils {
     }
 
     static boolean isBitSet(byte b, int bit) {
-        if (bit < 0 || bit >= 8) return false;
-        return (b & (1 << bit)) > 0;
+        return !(bit < 0 || bit >= 8) && (b & (1 << bit)) > 0;
     }
 
     static boolean isBitSet(int b, int bit) {
-        if (bit < 0 || bit >= 32) return false;
-        return (b & (1 << bit)) > 0;
+        return !(bit < 0 || bit >= 32) && (b & (1 << bit)) > 0;
     }
 }
