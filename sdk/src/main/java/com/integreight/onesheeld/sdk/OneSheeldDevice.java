@@ -1285,7 +1285,7 @@ public class OneSheeldDevice {
         renamingBoardTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
             @Override
             public void onTimeOut() {
-                if (renamingRetries > 0) {
+                if (renamingRetries > 0 && isConnected()) {
                     renamingRetries--;
                     Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
                     for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
