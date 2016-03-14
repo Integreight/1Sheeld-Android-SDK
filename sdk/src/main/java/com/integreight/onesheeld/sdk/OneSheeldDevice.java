@@ -1513,7 +1513,7 @@ public class OneSheeldDevice {
                             boolean isTestResultCorrect = false;
                             try {
                                 if (frame.getArguments().size() == 2) {
-                                    if (frame.getArgumentAsString(0).equals("Yup, I’m feeling great!")) {
+                                    if (frame.getArgumentAsString(0).equals("Yup, I'm feeling great!")) {
                                         if (frame.getArgument(1).length == 1 && frame.getArgument(1)[0] == correctTestingChallengeAnswer) {
                                             isTestResultCorrect = true;
                                         }
