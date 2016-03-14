@@ -36,3 +36,4 @@ abstract class BitsUtils {
         return !(bit < 0 || bit >= 32) && (b & (1 << bit)) > 0;
     }
 }
+
