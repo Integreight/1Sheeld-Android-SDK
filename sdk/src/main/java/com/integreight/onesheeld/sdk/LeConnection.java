@@ -96,7 +96,7 @@ public class LeConnection extends OneSheeldConnection {
     };
 
     public LeConnection(OneSheeldDevice device) {
-        super(device/*, false*/);
+        super(device);
         this.device = device;
         this.readBuffer = new ConcurrentLinkedQueue<>();
         this.writeBuffer = new ConcurrentLinkedQueue<>();

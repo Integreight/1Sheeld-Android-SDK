@@ -17,7 +17,7 @@ class ClassicConnection extends OneSheeldConnection {
     public final int MAX_BUFFER_SIZE = 1024;
 
     public ClassicConnection(OneSheeldDevice device, boolean isDefaultConnectingRetriesEnabled) {
-        super(device/*, false*/);
+        super(device);
         this.isDefaultConnectingRetriesEnabled = isDefaultConnectingRetriesEnabled;
     }
 
