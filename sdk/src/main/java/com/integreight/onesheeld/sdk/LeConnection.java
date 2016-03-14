@@ -28,19 +28,19 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class LeConnection extends OneSheeldConnection {
-    public final int MAX_BUFFER_SIZE = 1024;
-    public final int MAX_DATA_LENGTH_PER_WRITE = 20;
-    OneSheeldDevice device;
-    BluetoothGatt bluetoothGatt;
-    Queue<Byte> readBuffer;
+class LeConnection extends OneSheeldConnection {
+    private final int MAX_BUFFER_SIZE = 1024;
+    private final int MAX_DATA_LENGTH_PER_WRITE = 20;
+    private OneSheeldDevice device;
+    private BluetoothGatt bluetoothGatt;
+    private Queue<Byte> readBuffer;
     private final Queue<byte[]> writeBuffer;
     private final Object connectionLock;
     private boolean hasGattCallbackReplied;
     private boolean isConnectionSuccessful;
     private byte[] pendingSending;
     private TimeOut sendingPendingBytesTimeOut;
-    BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+    private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -106,7 +106,7 @@ public class LeConnection extends OneSheeldConnection {
         }
     };
 
-    public LeConnection(OneSheeldDevice device) {
+    LeConnection(OneSheeldDevice device) {
         super(device);
         this.device = device;
         this.readBuffer = new ConcurrentLinkedQueue<>();
@@ -238,7 +238,7 @@ public class LeConnection extends OneSheeldConnection {
     }
 
     @Override
-    protected boolean onConnectionInitiationRequest() {
+    protected synchronized boolean onConnectionInitiationRequest() {
         bluetoothGatt = device.getBluetoothDevice().connectGatt(OneSheeldSdk.getContext(), false, gattCallback);
         synchronized (connectionLock) {
             isConnectionSuccessful = false;

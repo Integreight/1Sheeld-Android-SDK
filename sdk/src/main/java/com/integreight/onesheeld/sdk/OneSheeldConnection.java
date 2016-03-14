@@ -23,11 +23,11 @@ abstract class OneSheeldConnection {
     private boolean isConnectionCallbackCalled;
     private boolean isConnected;
 
-    protected OneSheeldConnection(OneSheeldDevice device/*, boolean connectOnMainThread*/) {
+    protected OneSheeldConnection(OneSheeldDevice device) {
         this.device = device;
     }
 
-    public final void initiate() {
+    final synchronized void initiate() {
         isConnectionCallbackCalled = false;
         close();
         if (onConnectionInitiationRequest())
@@ -48,7 +48,7 @@ abstract class OneSheeldConnection {
         this.connectionCloseCallback = bluetoothConnectionCloseCallback;
     }
 
-    public final void close() {
+    final void close() {
         if (isConnected) {
             isConnected = false;
             onClose();

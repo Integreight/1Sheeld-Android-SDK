@@ -23,18 +23,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 class ClassicConnection extends OneSheeldConnection {
-    BluetoothSocket socket;
-    boolean isDefaultConnectingRetriesEnabled;
+    private BluetoothSocket socket;
+    private boolean isDefaultConnectingRetriesEnabled;
     private InputStream inputStream;
     private OutputStream outputStream;
-    public final int MAX_BUFFER_SIZE = 1024;
+    private final int MAX_BUFFER_SIZE = 1024;
 
-    public ClassicConnection(OneSheeldDevice device, boolean isDefaultConnectingRetriesEnabled) {
+    ClassicConnection(OneSheeldDevice device, boolean isDefaultConnectingRetriesEnabled) {
         super(device);
         this.isDefaultConnectingRetriesEnabled = isDefaultConnectingRetriesEnabled;
     }
 
-    protected boolean onConnectionInitiationRequest() {
+    protected synchronized boolean onConnectionInitiationRequest() {
         boolean isConnectionSuccessful;
         int triesCounter = 3;
         do {
@@ -68,7 +68,7 @@ class ClassicConnection extends OneSheeldConnection {
         return isConnectionSuccessful;
     }
 
-    public boolean write(final byte[] buffer) {
+    synchronized boolean write(final byte[] buffer) {
         if (socket == null || outputStream == null) return false;
         try {
             outputStream.write(buffer);
@@ -79,7 +79,7 @@ class ClassicConnection extends OneSheeldConnection {
         return true;
     }
 
-    public byte[] read() {
+    synchronized byte[] read() {
         if (socket == null || inputStream == null) return new byte[]{};
         byte[] buffer = new byte[MAX_BUFFER_SIZE];
         int bufferLength;
@@ -93,7 +93,7 @@ class ClassicConnection extends OneSheeldConnection {
         return ArrayUtils.copyOfRange(buffer, 0, bufferLength);
     }
 
-    public void onClose() {
+    protected void onClose() {
         if (inputStream != null)
             try {
                 inputStream.close();

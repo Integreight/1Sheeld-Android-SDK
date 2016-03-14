@@ -174,7 +174,7 @@ public class OneSheeldDevice {
      * <p>The name of the device will be the same as the address.</p>
      *
      * @param address    the Bluetooth address of the device
-     * @param isTypePlus explicitly determine if this 1Sheeld is the plus version (BLE)
+     * @param isTypePlus explicitly specify if this 1Sheeld is the plus version (BLE)
      * @throws InvalidBluetoothAddressException if the address is incorrect
      * @see InvalidBluetoothAddressException
      */
@@ -208,7 +208,7 @@ public class OneSheeldDevice {
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
      *
      * @param address    the Bluetooth address of the device
-     * @param isTypePlus explicitly determine if this 1Sheeld is the plus version (BLE)
+     * @param isTypePlus explicitly specify if this 1Sheeld is the plus version (BLE)
      * @throws InvalidBluetoothAddressException if the address is incorrect
      * @see InvalidBluetoothAddressException
      */
@@ -762,8 +762,14 @@ public class OneSheeldDevice {
         }
     }
 
-    public void renameTheBoard(String name) {
-        if (name == null || name.length() <= 0 || hasBoardRenamingStarted) {
+    public void rename(String name) {
+        if (name == null || name.length() <= 0)
+            return;
+        else if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        else if(hasBoardRenamingStarted) {
             Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
             return;
         }
@@ -784,8 +790,12 @@ public class OneSheeldDevice {
         initRenamingBoardTimeOut();
     }
 
-    public void testTheBoard() {
-        if (hasFirmwareTestStarted || hasLibraryTestStarted) {
+    public void test() {
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
             Log.i("Device " + this.name + ": device is in the middle of another test.");
             return;
         }
@@ -1393,7 +1403,7 @@ public class OneSheeldDevice {
             if (connection != null) connection.write(buffer);
         }
 
-        synchronized void cancel() {
+        private synchronized void cancel() {
             if (connection != null) connection.close();
         }
     }

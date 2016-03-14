@@ -257,20 +257,20 @@ public class MainActivity extends ActionBarActivity {
     public void onClickRename(View v) {
         if (selectedConnectedDevice != null) {
             pendingRenames.put(selectedConnectedDevice.getAddress(), selectedConnectedDevice.getName());
-            selectedConnectedDevice.renameTheBoard("1Sheeld #" + (selectedConnectedDevice.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
+            selectedConnectedDevice.rename("1Sheeld #" + (selectedConnectedDevice.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
         }
     }
 
     public void onClickRenameAll(View v) {
         for (OneSheeldDevice device : oneSheeldConnectedDevices) {
             pendingRenames.put(device.getAddress(), device.getName());
-            device.renameTheBoard("1Sheeld #" + (device.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
+            device.rename("1Sheeld #" + (device.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
         }
     }
 
     public void onClickTestBoard(View v) {
         if (selectedConnectedDevice != null) {
-            selectedConnectedDevice.testTheBoard();
+            selectedConnectedDevice.test();
         }
     }
 

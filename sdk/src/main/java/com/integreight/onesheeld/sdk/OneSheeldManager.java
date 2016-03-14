@@ -735,8 +735,11 @@ public class OneSheeldManager {
             final boolean isDefaultConnectingRetriesEnabled = OneSheeldManager.this.isAutomaticConnectingRetriesEnabled;
             final int totalTries = connectionRetryCount + 1;
             final AtomicInteger triesCounter = new AtomicInteger(totalTries);
-            if (device.isTypePlus()) connection = new LeConnection(device);
-            else connection = new ClassicConnection(device, isDefaultConnectingRetriesEnabled);
+            if (device.isTypePlus())
+                connection = new LeConnection(device);
+            else
+                connection = new ClassicConnection(device, isDefaultConnectingRetriesEnabled);
+
             connection.setConnectionCallback(new BluetoothConnectionCallback() {
                 @Override
                 public void onConnectionSuccess() {
