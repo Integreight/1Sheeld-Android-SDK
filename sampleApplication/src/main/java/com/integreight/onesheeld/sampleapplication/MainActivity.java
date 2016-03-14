@@ -1,10 +1,12 @@
 package com.integreight.onesheeld.sampleapplication;
 
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AlertDialog;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -326,6 +328,14 @@ public class MainActivity extends ActionBarActivity {
         oneSheeldManager.disconnectAll();
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         disconnectButton.setEnabled(false);
+    }
+
+    public void onClickBluetoothTestingDialog(View v){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(R.layout.testing_dialog);
+        Dialog alertDialog = builder.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.show();
     }
 
     @Override

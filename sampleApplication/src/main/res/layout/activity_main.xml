@@ -218,6 +218,12 @@
                         android:text="Test Board" />
                 </LinearLayout>
 
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:onClick="onClickBluetoothTestingDialog"
+                    android:text="Bluetooth Testing Dialog" />
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
