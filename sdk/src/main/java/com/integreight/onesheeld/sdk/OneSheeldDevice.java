@@ -89,7 +89,7 @@ public class OneSheeldDevice {
     private final byte SERIAL_DATA = (byte) 0x66;
     private final byte CONFIGURATION_SHIELD_ID = (byte) 0x00;
     private final byte BT_CONNECTED = (byte) 0x01;
-    private final byte LIBRARY_TESTING_CHALLENGE_REQUEST = (byte) 0x04;
+    private final byte LIBRARY_TESTING_CHALLENGE_REQUEST = (byte) 0x05;
     private final byte LIBRARY_TESTING_CHALLENGE_RESPONSE = (byte) 0x05;
     private final byte QUERY_LIBRARY_VERSION = (byte) 0x03;
     private final byte LIBRARY_VERSION_RESPONSE = (byte) 0x01;
