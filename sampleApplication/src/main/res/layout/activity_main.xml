@@ -43,7 +43,7 @@
         <ListView
             android:id="@+id/scanned_list"
             android:layout_width="fill_parent"
-            android:layout_height="180px"
+            android:layout_height="100dp"
             android:layout_margin="5px"
             android:layout_weight="1"
             android:background="@drawable/border"
@@ -54,7 +54,7 @@
         <ListView
             android:id="@+id/connected_list"
             android:layout_width="fill_parent"
-            android:layout_height="180px"
+            android:layout_height="100dp"
             android:layout_margin="5px"
             android:layout_weight="1"
             android:background="@drawable/border"
@@ -94,6 +94,12 @@
         android:onClick="onClickDisconnectAll"
         android:text="Disconnect All Devices" />
 
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onClickRenameAll"
+        android:text="Rename All Devices Randomly" />
+
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -115,71 +121,98 @@
             android:text="Broadcast Frame Off" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/onesheeld_container"
+    <ScrollView
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="invisible">
-
-        <TextView
-            android:id="@+id/selected_1sheeld_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Select Connected Device" />
+        android:layout_height="wrap_content">
 
         <LinearLayout
+            android:id="@+id/onesheeld_container"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:visibility="invisible">
 
             <TextView
+                android:id="@+id/selected_1sheeld_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Select Pin: " />
+                android:layout_gravity="center"
+                android:text="Select Connected Device" />
 
-            <Spinner
-                android:id="@+id/pin_number"
+            <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/border" />
-        </LinearLayout>
+                android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/digital_write"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:onClick="onClickDigitalWrite"
-            android:text="Digital Write" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select Pin: " />
 
-        <Button
-            android:id="@+id/digital_read"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:onClick="onClickDigitalRead"
-            android:text="Digital Read" />
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:weightSum="2">
+                <Spinner
+                    android:id="@+id/pin_number"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/border" />
+            </LinearLayout>
 
             <Button
+                android:id="@+id/digital_write"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onClickSendOnFrame"
-                android:text="Send Frame On"/>
+                android:onClick="onClickDigitalWrite"
+                android:text="Digital Write" />
 
             <Button
+                android:id="@+id/digital_read"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onClickSendOffFrame"
-                android:text="Send Frame Off"/>
+                android:onClick="onClickDigitalRead"
+                android:text="Digital Read" />
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="2">
+
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onClickSendOnFrame"
+                    android:text="Send Frame On" />
+
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onClickSendOffFrame"
+                    android:text="Send Frame Off" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:weightSum="2">
+
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onClickRename"
+                    android:text="Rename Randomly" />
+
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onClickTestBoard"
+                    android:text="Test Board" />
+            </LinearLayout>
+
         </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

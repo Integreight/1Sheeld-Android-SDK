@@ -15,6 +15,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.integreight.onesheeld.sdk.OneSheeldBoardRenamingCallback;
+import com.integreight.onesheeld.sdk.OneSheeldBoardTestingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldConnectionCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDevice;
 import com.integreight.onesheeld.sdk.OneSheeldError;
@@ -25,7 +27,9 @@ import com.integreight.onesheeld.sdk.OneSheeldSdk;
 import com.integreight.onesheeld.sdk.ShieldFrame;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends ActionBarActivity {
     private Handler uiThreadHandler = new Handler();
@@ -39,7 +43,7 @@ public class MainActivity extends ActionBarActivity {
     private ArrayList<String> connectedDevicesNames;
     private ArrayList<String> scannedDevicesNames;
     private ArrayList<OneSheeldDevice> oneSheeldScannedDevices;
-    private ArrayList<OneSheeldDevice> oneSheeldConnnectedDevices;
+    private ArrayList<OneSheeldDevice> oneSheeldConnectedDevices;
     private ArrayAdapter<String> connectedDevicesArrayAdapter;
     private ArrayAdapter<String> scannedDevicesArrayAdapter;
     private OneSheeldDevice selectedConnectedDevice = null;
@@ -48,6 +52,9 @@ public class MainActivity extends ActionBarActivity {
     private byte pushButtonShieldId = OneSheeldSdk.getKnownShields().PUSH_BUTTON_SHIELD.getId();
     private byte pushButtonFunctionId = (byte) 0x01;
     private OneSheeldManager oneSheeldManager;
+    private char[] nameChars = new char[]{};
+    private Random random = new Random();
+    private HashMap<String, String> pendingRenames;
     private OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
         @Override
         public void onDeviceFind(OneSheeldDevice device) {
@@ -65,7 +72,7 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onConnect(final OneSheeldDevice device) {
             oneSheeldScannedDevices.remove(device);
-            oneSheeldConnnectedDevices.add(device);
+            oneSheeldConnectedDevices.add(device);
             final String deviceName = device.getName();
             uiThreadHandler.post(new Runnable() {
                 @Override
@@ -82,6 +89,86 @@ public class MainActivity extends ActionBarActivity {
                 }
             });
             connectionProgressDialog.dismiss();
+            device.addTestingCallback(new OneSheeldBoardTestingCallback() {
+                @Override
+                public void onFirmwareTestResult(final boolean isPassed) {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Firmware test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onLibraryTestResult(final boolean isPassed) {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Library test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onFirmwareTestTimeOut() {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Error, firmware test timeout!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onLibraryTestTimeOut() {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Error, library test timeout!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+            device.addRenamingCallback(new OneSheeldBoardRenamingCallback() {
+                @Override
+                public void onRenamingAttemptTimeOut() {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Error, renaming attempt failed, retrying!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onAllRenamingAttemptsTimeOut() {
+
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Error, all renaming attempts failed!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    pendingRenames.remove(device.getAddress());
+                }
+
+                @Override
+                public void onRenamingRequestReceivedSuccessfully() {
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, device.getName() + ": Renaming request received successfully!", Toast.LENGTH_SHORT).show();
+                            if (connectedDevicesNames.indexOf(pendingRenames.get(device.getAddress())) >= 0) {
+                                connectedDevicesNames.add(connectedDevicesNames.indexOf(pendingRenames.get(device.getAddress())), device.getName());
+                                connectedDevicesNames.remove(pendingRenames.get(device.getAddress()));
+                                pendingRenames.remove(device.getAddress());
+                                connectedDevicesArrayAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    });
+                }
+            });
         }
 
         @Override
@@ -100,7 +187,7 @@ public class MainActivity extends ActionBarActivity {
                     oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
                 }
             });
-            oneSheeldConnnectedDevices.remove(device);
+            oneSheeldConnectedDevices.remove(device);
             if (scannedDevicesNames.indexOf(device.getName()) < 0 && oneSheeldScannedDevices.indexOf(device) < 0) {
                 oneSheeldScannedDevices.add(device);
                 scannedDevicesNames.add(device.getName());
@@ -118,7 +205,7 @@ public class MainActivity extends ActionBarActivity {
             uiThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(MainActivity.this, "Error: " + error.toString() + (device != null ? " in " + device.getName() : ""), Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Error: " + error.toString() + (device != null ? " in " + device.getName() : ""), Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -133,8 +220,8 @@ public class MainActivity extends ActionBarActivity {
     private AdapterView.OnItemClickListener connectedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedConnectedDevice = oneSheeldConnnectedDevices.get(position);
-            oneSheeldNameTextView.setText(oneSheeldConnnectedDevices.get(position).getName());
+            selectedConnectedDevice = oneSheeldConnectedDevices.get(position);
+            oneSheeldNameTextView.setText(oneSheeldConnectedDevices.get(position).getName());
             oneSheeldLinearLayout.setVisibility(View.VISIBLE);
             disconnectButton.setEnabled(true);
         }
@@ -165,6 +252,33 @@ public class MainActivity extends ActionBarActivity {
             selectedConnectedDevice = null;
             oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         }
+    }
+
+    public void onClickRename(View v) {
+        if (selectedConnectedDevice != null) {
+            pendingRenames.put(selectedConnectedDevice.getAddress(), selectedConnectedDevice.getName());
+            selectedConnectedDevice.renameTheBoard("1Sheeld #" + (selectedConnectedDevice.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
+        }
+    }
+
+    public void onClickRenameAll(View v) {
+        for (OneSheeldDevice device : oneSheeldConnectedDevices) {
+            pendingRenames.put(device.getAddress(), device.getName());
+            device.renameTheBoard("1Sheeld #" + (device.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
+        }
+    }
+
+    public void onClickTestBoard(View v) {
+        if (selectedConnectedDevice != null) {
+            selectedConnectedDevice.testTheBoard();
+        }
+    }
+
+    private String getRandomChars(int digitNum) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < digitNum; i++)
+            builder.append(nameChars[random.nextInt(nameChars.length)]);
+        return builder.toString();
     }
 
     public void onClickDigitalWrite(View v) {
@@ -237,7 +351,8 @@ public class MainActivity extends ActionBarActivity {
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
         oneSheeldScannedDevices = new ArrayList<>();
-        oneSheeldConnnectedDevices = new ArrayList<>();
+        oneSheeldConnectedDevices = new ArrayList<>();
+        pendingRenames = new HashMap<>();
         connectedDevicesListView.setAdapter(connectedDevicesArrayAdapter);
         scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
         pinsSpinner.setAdapter(pinsArrayAdapter);
@@ -245,7 +360,17 @@ public class MainActivity extends ActionBarActivity {
         connectedDevicesListView.setOnItemClickListener(connectedDevicesListViewClickListener);
         initScanningProgressDialog();
         initConnectionProgressDialog();
+        initRandomChars();
         initOneSheeldSdk();
+    }
+
+    private void initRandomChars() {
+        StringBuilder tmp = new StringBuilder();
+        for (char ch = '0'; ch <= '9'; ++ch)
+            tmp.append(ch);
+        for (char ch = 'A'; ch <= 'Z'; ++ch)
+            tmp.append(ch);
+        nameChars = tmp.toString().toCharArray();
     }
 
     private void initOneSheeldSdk() {
