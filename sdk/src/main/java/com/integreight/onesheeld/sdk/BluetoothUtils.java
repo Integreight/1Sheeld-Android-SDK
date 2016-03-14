@@ -26,8 +26,9 @@ import java.util.UUID;
 
 abstract class BluetoothUtils {
     public static final int MAXIMUM_CONNECTED_BLUETOOTH_DEVICES = 7;
-    private static final UUID BLUETOOTH_SPP_PROFILE = UUID
-            .fromString("00001101-0000-1000-8000-00805F9B34FB");
+    static final UUID BLUETOOTH_SPP_PROFILE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    static final UUID COMMUNICATIONS_SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
+    static final UUID COMMUNICATIONS_CHAR_UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
 
     static boolean isBluetoothEnabled() {
         return doesDeviceHasBluetooth() && getBluetoothAdapter().isEnabled();

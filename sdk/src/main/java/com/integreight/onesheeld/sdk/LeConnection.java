@@ -25,13 +25,10 @@ import android.bluetooth.BluetoothProfile;
 import android.os.Build;
 
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class LeConnection extends OneSheeldConnection {
-    public static final String COMMUNICATIONS_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    public static final String COMMUNICATIONS_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
     public final int MAX_BUFFER_SIZE = 1024;
     public final int MAX_DATA_LENGTH_PER_WRITE = 20;
     OneSheeldDevice device;
@@ -60,9 +57,9 @@ public class LeConnection extends OneSheeldConnection {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                BluetoothGattService service = gatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID));
+                BluetoothGattService service = gatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
                 if (service != null) {
-                    BluetoothGattCharacteristic commChar = service.getCharacteristic(UUID.fromString(COMMUNICATIONS_CHAR_UUID));
+                    BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                     if (commChar != null && (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 &&
                             (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
                         gatt.setCharacteristicNotification(commChar, true);
@@ -166,8 +163,8 @@ public class LeConnection extends OneSheeldConnection {
 
     @Override
     synchronized boolean write(byte[] buffer) {
-        if (bluetoothGatt == null || buffer.length <= 0 || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID)) == null ||
-                bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID)).getCharacteristic(UUID.fromString(COMMUNICATIONS_CHAR_UUID)) == null) {
+        if (bluetoothGatt == null || buffer.length <= 0 || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID) == null ||
+                bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID) == null) {
             return false;
         }
         synchronized (writeBuffer) {
@@ -192,12 +189,12 @@ public class LeConnection extends OneSheeldConnection {
     }
 
     private boolean flushWriteBuffer() {
-        if (bluetoothGatt == null || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID)) == null ||
-                bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID)).getCharacteristic(UUID.fromString(COMMUNICATIONS_CHAR_UUID)) == null) {
+        if (bluetoothGatt == null || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID) == null ||
+                bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID) == null) {
             return false;
         }
 
-        BluetoothGattCharacteristic commChar = bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID)).getCharacteristic(UUID.fromString(COMMUNICATIONS_CHAR_UUID));
+        BluetoothGattCharacteristic commChar = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
         synchronized (writeBuffer) {
             while (!writeBuffer.isEmpty()) {
                 byte[] byteArrayInProgress = writeBuffer.poll();
@@ -261,9 +258,9 @@ public class LeConnection extends OneSheeldConnection {
     @Override
     protected void onClose() {
         if (bluetoothGatt != null) {
-            BluetoothGattService service = bluetoothGatt.getService(UUID.fromString(COMMUNICATIONS_SERVICE_UUID));
+            BluetoothGattService service = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
             if (service != null) {
-                BluetoothGattCharacteristic commChar = service.getCharacteristic(UUID.fromString(COMMUNICATIONS_CHAR_UUID));
+                BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                 if (commChar != null) {
                     bluetoothGatt.setCharacteristicNotification(commChar, false);
                 }
