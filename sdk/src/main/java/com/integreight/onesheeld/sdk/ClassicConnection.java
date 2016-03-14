@@ -69,7 +69,7 @@ class ClassicConnection extends OneSheeldConnection {
     public byte[] read() {
         if (socket == null || inputStream == null) return new byte[]{};
         byte[] buffer = new byte[MAX_BUFFER_SIZE];
-        int bufferLength ;
+        int bufferLength;
         try {
             bufferLength = inputStream.read(buffer, 0, buffer.length);
         } catch (IOException e) {

@@ -39,8 +39,8 @@ abstract class OneSheeldConnection {
     }
 
     public final void close() {
-        if(isConnected) {
-            isConnected=false;
+        if (isConnected) {
+            isConnected = false;
             onClose();
             if (connectionCloseCallback != null) connectionCloseCallback.onConnectionClose();
         }
@@ -49,7 +49,7 @@ abstract class OneSheeldConnection {
     protected final void connectionSuccess() {
         if (connectionCallback != null && !isConnectionCallbackCalled) {
             isConnectionCallbackCalled = true;
-            isConnected=true;
+            isConnected = true;
             connectionCallback.onConnectionSuccess();
         }
     }
@@ -58,7 +58,7 @@ abstract class OneSheeldConnection {
         if (!isConnectionCallbackCalled) {
             close();
             isConnectionCallbackCalled = true;
-            isConnected=false;
+            isConnected = false;
             if (connectionCallback != null) connectionCallback.onConnectionFailure();
         }
     }
@@ -67,7 +67,7 @@ abstract class OneSheeldConnection {
         if (!isConnectionCallbackCalled) {
             close();
             isConnectionCallbackCalled = true;
-            isConnected=false;
+            isConnected = false;
             if (connectionCallback != null) connectionCallback.onConnectionInterrupt();
         }
     }
