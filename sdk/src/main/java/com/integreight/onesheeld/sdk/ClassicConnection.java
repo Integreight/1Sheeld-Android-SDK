@@ -68,7 +68,7 @@ class ClassicConnection extends OneSheeldConnection {
         return isConnectionSuccessful;
     }
 
-    synchronized boolean write(final byte[] buffer) {
+    boolean write(final byte[] buffer) {
         if (socket == null || outputStream == null) return false;
         try {
             outputStream.write(buffer);
@@ -79,7 +79,7 @@ class ClassicConnection extends OneSheeldConnection {
         return true;
     }
 
-    synchronized byte[] read() {
+    byte[] read() {
         if (socket == null || inputStream == null) return new byte[]{};
         byte[] buffer = new byte[MAX_BUFFER_SIZE];
         int bufferLength;
