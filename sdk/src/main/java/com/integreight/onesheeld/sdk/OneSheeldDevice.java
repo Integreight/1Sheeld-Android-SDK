@@ -1525,6 +1525,7 @@ public class OneSheeldDevice {
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing succeeded.");
                             else
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
+                            stopLibraryTestingTimeOut();
                             for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
                                 oneSheeldBoardTestingCallback.onLibraryTestResult(isTestResultCorrect);
                         }
