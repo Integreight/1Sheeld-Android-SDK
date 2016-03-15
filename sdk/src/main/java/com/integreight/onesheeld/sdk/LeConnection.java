@@ -174,16 +174,19 @@ class LeConnection extends OneSheeldConnection {
                 return true;
             }
             stopSendingPendingBytesTimeOut();
+            boolean isDataLeft = false;
             for (int i = 0; i < pendingSending.length; i += MAX_DATA_LENGTH_PER_WRITE) {
                 if (i + MAX_DATA_LENGTH_PER_WRITE > pendingSending.length) {
                     pendingSending = ArrayUtils.copyOfRange(pendingSending, i, pendingSending.length);
                     if (pendingSending.length > 0) initSendingPendingBytesTimeOut();
+                    isDataLeft = true;
                     break;
                 } else {
                     byte[] subArray = ArrayUtils.copyOfRange(pendingSending, i, i + MAX_DATA_LENGTH_PER_WRITE);
                     writeBuffer.add(subArray);
                 }
             }
+            if (!isDataLeft) pendingSending = new byte[]{};
             return flushWriteBuffer();
         }
     }
