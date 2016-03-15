@@ -1174,6 +1174,7 @@ public class OneSheeldDevice {
                             for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
                                 renamingCallback.onRenamingRequestReceivedSuccessfully(OneSheeldDevice.this);
                             }
+                            closeConnection();
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
