@@ -5,12 +5,12 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -20,6 +20,7 @@ import android.widget.Toast;
 import com.integreight.onesheeld.sdk.OneSheeldBoardRenamingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldBoardTestingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldConnectionCallback;
+import com.integreight.onesheeld.sdk.OneSheeldDataCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDevice;
 import com.integreight.onesheeld.sdk.OneSheeldError;
 import com.integreight.onesheeld.sdk.OneSheeldErrorCallback;
@@ -28,12 +29,15 @@ import com.integreight.onesheeld.sdk.OneSheeldScanningCallback;
 import com.integreight.onesheeld.sdk.OneSheeldSdk;
 import com.integreight.onesheeld.sdk.ShieldFrame;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
     private Handler uiThreadHandler = new Handler();
     private Button connectButton;
     private Button disconnectButton;
@@ -44,8 +48,8 @@ public class MainActivity extends ActionBarActivity {
     private LinearLayout oneSheeldLinearLayout;
     private ArrayList<String> connectedDevicesNames;
     private ArrayList<String> scannedDevicesNames;
-    private ArrayList<OneSheeldDevice> oneSheeldScannedDevices;
-    private ArrayList<OneSheeldDevice> oneSheeldConnectedDevices;
+    private Map<String, OneSheeldDevice> oneSheeldScannedDevices;
+    private Map<String, OneSheeldDevice> oneSheeldConnectedDevices;
     private ArrayAdapter<String> connectedDevicesArrayAdapter;
     private ArrayAdapter<String> scannedDevicesArrayAdapter;
     private OneSheeldDevice selectedConnectedDevice = null;
@@ -57,10 +61,21 @@ public class MainActivity extends ActionBarActivity {
     private char[] nameChars = new char[]{};
     private Random random = new Random();
     private HashMap<String, String> pendingRenames;
+    private Dialog bluetoothTestingDialog;
+    private EditText bluetoothTestingSendingEditText;
+    private EditText bluetoothTestingFramesNumberEditText;
+    private EditText bluetoothTestingReceivingEditText;
+    private TextView bluetoothSentFramesCounterTextView;
+    private TextView bluetoothTestingReceivingFramesCounterTextView;
+    private Button bluetoothTestingStartButton;
+    private Button bluetoothTestingResetButton;
+    private StringBuilder receivedStringBuilder = new StringBuilder();
+    private BluetoothTestingSendingThread bluetoothTestingSendingThread;
+
     private OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
         @Override
         public void onDeviceFind(OneSheeldDevice device) {
-            oneSheeldScannedDevices.add(device);
+            oneSheeldScannedDevices.put(device.getAddress(), device);
             scannedDevicesNames.add(device.getName());
             scannedDevicesArrayAdapter.notifyDataSetChanged();
         }
@@ -70,11 +85,110 @@ public class MainActivity extends ActionBarActivity {
             scanningProgressDialog.dismiss();
         }
     };
+    private OneSheeldBoardTestingCallback testingCallback = new OneSheeldBoardTestingCallback() {
+        @Override
+        public void onFirmwareTestResult(final OneSheeldDevice device, final boolean isPassed) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Firmware test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onLibraryTestResult(final OneSheeldDevice device, final boolean isPassed) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Library test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onFirmwareTestTimeOut(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Error, firmware test timeout!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onLibraryTestTimeOut(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Error, library test timeout!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    };
+    private OneSheeldBoardRenamingCallback renamingCallback = new OneSheeldBoardRenamingCallback() {
+        @Override
+        public void onRenamingAttemptTimeOut(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Error, renaming attempt failed, retrying!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onAllRenamingAttemptsTimeOut(final OneSheeldDevice device) {
+
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Error, all renaming attempts failed!", Toast.LENGTH_SHORT).show();
+                }
+            });
+            pendingRenames.remove(device.getAddress());
+        }
+
+        @Override
+        public void onRenamingRequestReceivedSuccessfully(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(MainActivity.this, device.getName() + ": Renaming request received successfully!", Toast.LENGTH_SHORT).show();
+                    if (connectedDevicesNames.contains(pendingRenames.get(device.getAddress()))) {
+                        connectedDevicesNames.add(connectedDevicesNames.indexOf(pendingRenames.get(device.getAddress())), device.getName());
+                        connectedDevicesNames.remove(pendingRenames.get(device.getAddress()));
+                        pendingRenames.remove(device.getAddress());
+                        connectedDevicesArrayAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+        }
+    };
+    private OneSheeldDataCallback dataCallback = new OneSheeldDataCallback() {
+        @Override
+        public void onSerialDataReceive(OneSheeldDevice device, int data) {
+            receivedStringBuilder.append((char) data);
+            if (receivedStringBuilder.length() >= bluetoothTestingReceivingEditText.getText().toString().length()) {
+                String compareString = receivedStringBuilder.substring(0, bluetoothTestingReceivingEditText.getText().toString().length());
+                if (compareString.equals(bluetoothTestingReceivingEditText.getText().toString())) {
+                    receivedStringBuilder.delete(0, bluetoothTestingReceivingEditText.getText().toString().length());
+                    uiThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            bluetoothTestingReceivingFramesCounterTextView.setText(String.valueOf((Integer.valueOf(bluetoothTestingReceivingFramesCounterTextView.getText().toString()) + 1)));
+                        }
+                    });
+                }
+                if (receivedStringBuilder.length() > 0) receivedStringBuilder.deleteCharAt(0);
+            }
+        }
+    };
     private OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
         @Override
         public void onConnect(final OneSheeldDevice device) {
-            oneSheeldScannedDevices.remove(device);
-            oneSheeldConnectedDevices.add(device);
+            oneSheeldScannedDevices.remove(device.getAddress());
+            oneSheeldConnectedDevices.put(device.getAddress(), device);
             final String deviceName = device.getName();
             uiThreadHandler.post(new Runnable() {
                 @Override
@@ -91,86 +205,9 @@ public class MainActivity extends ActionBarActivity {
                 }
             });
             connectionProgressDialog.dismiss();
-            device.addTestingCallback(new OneSheeldBoardTestingCallback() {
-                @Override
-                public void onFirmwareTestResult(final boolean isPassed) {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Firmware test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-
-                @Override
-                public void onLibraryTestResult(final boolean isPassed) {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Library test result: " + (isPassed ? "Correct" : "Failed"), Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-
-                @Override
-                public void onFirmwareTestTimeOut() {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Error, firmware test timeout!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-
-                @Override
-                public void onLibraryTestTimeOut() {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Error, library test timeout!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-            });
-            device.addRenamingCallback(new OneSheeldBoardRenamingCallback() {
-                @Override
-                public void onRenamingAttemptTimeOut() {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Error, renaming attempt failed, retrying!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-
-                @Override
-                public void onAllRenamingAttemptsTimeOut() {
-
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Error, all renaming attempts failed!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    pendingRenames.remove(device.getAddress());
-                }
-
-                @Override
-                public void onRenamingRequestReceivedSuccessfully() {
-                    uiThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, device.getName() + ": Renaming request received successfully!", Toast.LENGTH_SHORT).show();
-                            if (connectedDevicesNames.indexOf(pendingRenames.get(device.getAddress())) >= 0) {
-                                connectedDevicesNames.add(connectedDevicesNames.indexOf(pendingRenames.get(device.getAddress())), device.getName());
-                                connectedDevicesNames.remove(pendingRenames.get(device.getAddress()));
-                                pendingRenames.remove(device.getAddress());
-                                connectedDevicesArrayAdapter.notifyDataSetChanged();
-                            }
-                        }
-                    });
-                }
-            });
+            device.addTestingCallback(testingCallback);
+            device.addRenamingCallback(renamingCallback);
+            device.addDataCallback(dataCallback);
         }
 
         @Override
@@ -189,14 +226,14 @@ public class MainActivity extends ActionBarActivity {
                     oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
                 }
             });
-            oneSheeldConnectedDevices.remove(device);
-            if (scannedDevicesNames.indexOf(device.getName()) < 0 && oneSheeldScannedDevices.indexOf(device) < 0) {
-                oneSheeldScannedDevices.add(device);
+            oneSheeldConnectedDevices.remove(device.getAddress());
+            if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.containsKey(device.getAddress())) {
+                oneSheeldScannedDevices.put(device.getAddress(), device);
                 scannedDevicesNames.add(device.getName());
             }
+            bluetoothTestingDialog.dismiss();
         }
     };
-
     private OneSheeldErrorCallback errorCallback = new OneSheeldErrorCallback() {
         @Override
         public void onError(final OneSheeldDevice device, final OneSheeldError error) {
@@ -215,15 +252,15 @@ public class MainActivity extends ActionBarActivity {
     private AdapterView.OnItemClickListener scannedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedScanedDevice = oneSheeldScannedDevices.get(position);
+            selectedScanedDevice = (OneSheeldDevice) oneSheeldScannedDevices.values().toArray()[position];
             connectButton.setEnabled(true);
         }
     };
     private AdapterView.OnItemClickListener connectedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedConnectedDevice = oneSheeldConnectedDevices.get(position);
-            oneSheeldNameTextView.setText(oneSheeldConnectedDevices.get(position).getName());
+            selectedConnectedDevice = (OneSheeldDevice) oneSheeldConnectedDevices.values().toArray()[position];
+            oneSheeldNameTextView.setText(selectedConnectedDevice.getName());
             oneSheeldLinearLayout.setVisibility(View.VISIBLE);
             disconnectButton.setEnabled(true);
         }
@@ -264,7 +301,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void onClickRenameAll(View v) {
-        for (OneSheeldDevice device : oneSheeldConnectedDevices) {
+        for (OneSheeldDevice device : oneSheeldConnectedDevices.values()) {
             pendingRenames.put(device.getAddress(), device.getName());
             device.rename("1Sheeld #" + (device.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
         }
@@ -330,12 +367,17 @@ public class MainActivity extends ActionBarActivity {
         disconnectButton.setEnabled(false);
     }
 
-    public void onClickBluetoothTestingDialog(View v){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(R.layout.testing_dialog);
-        Dialog alertDialog = builder.create();
-        alertDialog.setCanceledOnTouchOutside(false);
-        alertDialog.show();
+    public void onClickBluetoothTestingDialog(View v) {
+        resetBluetoothTesting();
+        bluetoothSentFramesCounterTextView.setText("0");
+        bluetoothTestingReceivingFramesCounterTextView.setText("0");
+        bluetoothTestingSendingEditText.setText("a0b1c2d3e4f5g6h7i8j9");
+        bluetoothTestingFramesNumberEditText.setText("10000");
+        bluetoothTestingReceivingEditText.setText("a0b1c2d3e4f5g6h7i8j9");
+        bluetoothTestingStartButton.setEnabled(true);
+        bluetoothTestingSendingEditText.setEnabled(true);
+        bluetoothTestingFramesNumberEditText.setEnabled(true);
+        bluetoothTestingDialog.show();
     }
 
     @Override
@@ -360,8 +402,8 @@ public class MainActivity extends ActionBarActivity {
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
-        oneSheeldScannedDevices = new ArrayList<>();
-        oneSheeldConnectedDevices = new ArrayList<>();
+        oneSheeldScannedDevices = new HashMap<>();
+        oneSheeldConnectedDevices = new HashMap<>();
         pendingRenames = new HashMap<>();
         connectedDevicesListView.setAdapter(connectedDevicesArrayAdapter);
         scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
@@ -371,7 +413,78 @@ public class MainActivity extends ActionBarActivity {
         initScanningProgressDialog();
         initConnectionProgressDialog();
         initRandomChars();
+        initBluetoothTestingDialog();
         initOneSheeldSdk();
+    }
+
+    void initBluetoothTestingDialog() {
+        bluetoothTestingDialog = new Dialog(this);
+        bluetoothTestingDialog.setContentView(R.layout.testing_dialog);
+        bluetoothTestingSendingEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingSendingEditText);
+        bluetoothTestingFramesNumberEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingFramesNumberEditText);
+        bluetoothTestingReceivingEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingReceivingEditText);
+        bluetoothSentFramesCounterTextView = (TextView) bluetoothTestingDialog.findViewById(R.id.bluetoothSentFramesCounterTextView);
+        bluetoothTestingReceivingFramesCounterTextView = (TextView) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingReceivingFramesCounterTextView);
+        bluetoothTestingStartButton = (Button) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingStartButton);
+        bluetoothTestingResetButton = (Button) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingResetButton);
+        bluetoothTestingStartButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startBluetoothTesting();
+            }
+        });
+        bluetoothTestingResetButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resetBluetoothTesting();
+            }
+        });
+        resetBluetoothTesting();
+        bluetoothTestingDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                resetBluetoothTesting();
+            }
+        });
+        bluetoothTestingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                resetBluetoothTesting();
+            }
+        });
+    }
+
+    private void resetBluetoothTesting() {
+        if (bluetoothTestingSendingThread != null)
+            bluetoothTestingSendingThread.stopRunning();
+        uiThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                bluetoothSentFramesCounterTextView.setText("0");
+                bluetoothTestingReceivingFramesCounterTextView.setText("0");
+                bluetoothTestingSendingEditText.setEnabled(true);
+                bluetoothTestingFramesNumberEditText.setEnabled(true);
+                bluetoothTestingStartButton.setEnabled(true);
+            }
+        });
+        receivedStringBuilder = new StringBuilder();
+    }
+
+    private void startBluetoothTesting() {
+        if (selectedConnectedDevice != null) {
+            if (bluetoothTestingSendingThread != null)
+                bluetoothTestingSendingThread.stopRunning();
+            bluetoothTestingSendingThread = new BluetoothTestingSendingThread(selectedConnectedDevice, bluetoothTestingSendingEditText.getText().toString(), Integer.valueOf(bluetoothTestingFramesNumberEditText.getText().toString()));
+        }
+        uiThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                bluetoothTestingStartButton.setEnabled(false);
+                bluetoothTestingSendingEditText.setEnabled(false);
+                bluetoothTestingFramesNumberEditText.setEnabled(false);
+
+            }
+        });
     }
 
     private void initRandomChars() {
@@ -419,6 +532,54 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onDestroy() {
         oneSheeldManager.cancelScanning();
+        oneSheeldManager.disconnectAll();
+        bluetoothTestingDialog.dismiss();
         super.onDestroy();
+    }
+
+    private class BluetoothTestingSendingThread extends Thread {
+        AtomicBoolean stopRequested;
+        OneSheeldDevice device;
+        String string;
+        int count;
+
+        BluetoothTestingSendingThread(OneSheeldDevice device, String string, int count) {
+            stopRequested = new AtomicBoolean(false);
+            this.device = device;
+            this.string = string;
+            this.count = count;
+            start();
+        }
+
+        private void stopRunning() {
+            if (this.isAlive())
+                this.interrupt();
+            stopRequested.set(true);
+        }
+
+        @Override
+        public void run() {
+            for (int i = 1; i <= count && !this.isInterrupted() && !stopRequested.get(); i++) {
+                device.sendSerialData(string.getBytes(Charset.forName("US-ASCII")));
+                final int counter = i;
+                uiThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!stopRequested.get())
+                            bluetoothSentFramesCounterTextView.setText(String.valueOf(counter));
+                    }
+                });
+            }
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (!stopRequested.get()) {
+                        bluetoothTestingSendingEditText.setEnabled(true);
+                        bluetoothTestingFramesNumberEditText.setEnabled(true);
+                        bluetoothTestingStartButton.setEnabled(true);
+                    }
+                }
+            });
+        }
     }
 }
