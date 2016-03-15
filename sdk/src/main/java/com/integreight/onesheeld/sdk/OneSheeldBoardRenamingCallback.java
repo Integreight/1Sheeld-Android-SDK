@@ -25,22 +25,28 @@ public abstract class OneSheeldBoardRenamingCallback {
 
     /**
      * This method gets called when the device does not respond with a confirmation for the new board name.
+     *
+     * @param device the device where the event occurred
      */
-    public void onRenamingAttemptTimeOut() {
+    public void onRenamingAttemptTimeOut(OneSheeldDevice device) {
 
     }
 
     /**
      * This method gets called when all the attempts to rename the board fail.
+     *
+     * @param device the device where the event occurred
      */
-    public void onAllRenamingAttemptsTimeOut() {
+    public void onAllRenamingAttemptsTimeOut(OneSheeldDevice device) {
 
     }
 
     /**
      * This method gets called when the device confirms the new board name.
+     *
+     * @param device the device where the event occurred
      */
-    public void onRenamingRequestReceivedSuccessfully() {
+    public void onRenamingRequestReceivedSuccessfully(OneSheeldDevice device) {
 
     }
 }

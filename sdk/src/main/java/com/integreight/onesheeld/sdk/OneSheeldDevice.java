@@ -508,28 +508,28 @@ public class OneSheeldDevice {
     }
 
     private void onConnect() {
-        manager.onConnect(this);
+        manager.onConnect(OneSheeldDevice.this);
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onConnect(this);
+            connectionCallback.onConnect(OneSheeldDevice.this);
         }
     }
 
     private void onDisconnect() {
-        manager.onDisconnect(this);
+        manager.onDisconnect(OneSheeldDevice.this);
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onDisconnect(this);
+            connectionCallback.onDisconnect(OneSheeldDevice.this);
         }
     }
 
     void onError(OneSheeldError error) {
         for (OneSheeldErrorCallback errorCallback : errorCallbacks) {
-            errorCallback.onError(this, error);
+            errorCallback.onError(OneSheeldDevice.this, error);
         }
     }
 
     void onConnectionRetry(int retryCount) {
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onConnectionRetry(this, retryCount);
+            connectionCallback.onConnectionRetry(OneSheeldDevice.this, retryCount);
         }
     }
 
@@ -935,7 +935,7 @@ public class OneSheeldDevice {
             if (isPinDebuggingEnabled)
                 Log.i("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
             for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, getDigitalPinStatus(actualPinNumber));
+                oneSheeldDataCallback.onDigitalPinStatusChange(OneSheeldDevice.this, actualPinNumber, getDigitalPinStatus(actualPinNumber));
             }
         }
     }
@@ -1143,7 +1143,7 @@ public class OneSheeldDevice {
                             for (byte b : fixedSysexData) {
                                 serialBuffer.add(b);
                                 for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                                    oneSheeldDataCallback.onSerialDataReceive(b & 0xFF);
+                                    oneSheeldDataCallback.onSerialDataReceive(OneSheeldDevice.this, b & 0xFF);
                                 }
                             }
                         } else if (sysexCommand == BLUETOOTH_RESET) {
@@ -1165,14 +1165,14 @@ public class OneSheeldDevice {
                             else
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing failed.");
                             for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                                oneSheeldBoardTestingCallback.onFirmwareTestResult(isPassed);
+                                oneSheeldBoardTestingCallback.onFirmwareTestResult(OneSheeldDevice.this, isPassed);
                         } else if (sysexCommand == BOARD_RENAMING) {
                             Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
                             this.name = pendingName;
                             hasBoardRenamingStarted = false;
                             stopRenamingBoardTimeOut();
                             for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
-                                renamingCallback.onRenamingRequestReceivedSuccessfully();
+                                renamingCallback.onRenamingRequestReceivedSuccessfully(OneSheeldDevice.this);
                             }
                         } else {
                             onSysex(sysexCommand, sysexData);
@@ -1237,7 +1237,7 @@ public class OneSheeldDevice {
      */
     public void connect() {
         Log.i("Device " + this.name + ": Delegate the connection request to the manager.");
-        manager.connect(this);
+        manager.connect(OneSheeldDevice.this);
     }
 
     /**
@@ -1297,7 +1297,7 @@ public class OneSheeldDevice {
                     renamingRetries--;
                     Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
                     for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
-                        renamingCallback.onRenamingAttemptTimeOut();
+                        renamingCallback.onRenamingAttemptTimeOut(OneSheeldDevice.this);
                     }
                     sendBoardRenamingRequest(pendingName);
                 } else {
@@ -1305,7 +1305,7 @@ public class OneSheeldDevice {
                     hasBoardRenamingStarted = false;
                     Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting.");
                     for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
-                        renamingCallback.onAllRenamingAttemptsTimeOut();
+                        renamingCallback.onAllRenamingAttemptsTimeOut(OneSheeldDevice.this);
                     }
                 }
             }
@@ -1330,7 +1330,7 @@ public class OneSheeldDevice {
                 hasFirmwareTestStarted = false;
                 Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing time-outed.");
                 for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                    oneSheeldBoardTestingCallback.onFirmwareTestTimeOut();
+                    oneSheeldBoardTestingCallback.onFirmwareTestTimeOut(OneSheeldDevice.this);
             }
 
             @Override
@@ -1353,7 +1353,7 @@ public class OneSheeldDevice {
                 hasLibraryTestStarted = false;
                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing time-outed.");
                 for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                    oneSheeldBoardTestingCallback.onLibraryTestTimeOut();
+                    oneSheeldBoardTestingCallback.onLibraryTestTimeOut(OneSheeldDevice.this);
             }
 
             @Override
@@ -1527,15 +1527,15 @@ public class OneSheeldDevice {
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
                             stopLibraryTestingTimeOut();
                             for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                                oneSheeldBoardTestingCallback.onLibraryTestResult(isTestResultCorrect);
+                                oneSheeldBoardTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
                         }
                     } else {
                         Log.i("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
                         for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                            oneSheeldDataCallback.onShieldFrameReceive(frame);
+                            oneSheeldDataCallback.onShieldFrameReceive(OneSheeldDevice.this, frame);
                             if (OneSheeldSdk.getKnownShields().contains(shieldId) &&
                                     OneSheeldSdk.getKnownShields().getKnownShield(shieldId).getKnownFunctions().contains(KnownFunction.getFunctionWithId(functionId)))
-                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
+                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldDevice.this, OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
                         }
                     }
                 } catch (InterruptedException e) {

@@ -25,32 +25,38 @@ public abstract class OneSheeldBoardTestingCallback {
     /**
      * This method gets called when the device responds with an answer to the firmware challenge.
      *
+     * @param device   the device where the event occurred
      * @param isPassed represents the status of the test
      */
-    public void onFirmwareTestResult(boolean isPassed) {
+    public void onFirmwareTestResult(OneSheeldDevice device, boolean isPassed) {
 
     }
 
     /**
      * This method gets called when the device responds with an answer to the library challenge.
      *
+     * @param device   the device where the event occurred
      * @param isPassed represents the status of the test
      */
-    public void onLibraryTestResult(boolean isPassed) {
+    public void onLibraryTestResult(OneSheeldDevice device, boolean isPassed) {
 
     }
 
     /**
      * This method gets called when the device does not respond with an answer to the firmware challenge.
+     *
+     * @param device the device where the event occurred
      */
-    public void onFirmwareTestTimeOut() {
+    public void onFirmwareTestTimeOut(OneSheeldDevice device) {
 
     }
 
     /**
      * This method gets called when the device does not respond with an answer to the library challenge.
+     *
+     * @param device the device where the event occurred
      */
-    public void onLibraryTestTimeOut() {
+    public void onLibraryTestTimeOut(OneSheeldDevice device) {
 
     }
 }
