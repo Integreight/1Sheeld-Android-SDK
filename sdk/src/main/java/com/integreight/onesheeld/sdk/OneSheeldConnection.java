@@ -49,9 +49,9 @@ abstract class OneSheeldConnection {
     }
 
     final void close() {
+        onClose();
         if (isConnected) {
             isConnected = false;
-            onClose();
             if (connectionCloseCallback != null) connectionCloseCallback.onConnectionClose();
         }
     }
