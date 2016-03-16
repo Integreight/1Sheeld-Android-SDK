@@ -16,28 +16,38 @@
 
 package com.integreight.onesheeld.sdk;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 class TimeOut extends Thread {
 
-    boolean isTimeout;
-    long milliSecondsLeft;
-    long totalMilliSeconds;
-    long milliStep;
-    TimeOutCallback callback;
+    private boolean isTimeout;
+    private long milliSecondsLeft;
+    private long totalMilliSeconds;
+    private long milliStep;
+    private TimeOutCallback callback;
+    private AtomicBoolean isSleeping;
+    private AtomicBoolean isStopRequested;
+    private final Object isTimeOutLock;
+
 
     TimeOut(long milliSeconds, long milliStep, TimeOutCallback callback) {
-        isTimeout = false;
+        this.isTimeout = false;
         this.totalMilliSeconds = milliSeconds;
         this.callback = callback;
-        this.milliStep = milliStep;
-        stopTimer();
+        this.milliStep = milliStep <= milliSeconds && milliStep > 0 ? milliStep : milliSeconds;
+        this.isSleeping = new AtomicBoolean(false);
+        this.isStopRequested = new AtomicBoolean(false);
+        this.isTimeOutLock = new Object();
         start();
     }
 
     TimeOut(long milliSeconds) {
-        isTimeout = false;
+        this.isTimeout = false;
         this.totalMilliSeconds = milliSeconds;
         this.milliStep = milliSeconds;
-        stopTimer();
+        this.isSleeping = new AtomicBoolean(false);
+        this.isStopRequested = new AtomicBoolean(false);
+        this.isTimeOutLock = new Object();
         start();
     }
 
@@ -46,11 +56,19 @@ class TimeOut extends Thread {
     }
 
     boolean isTimeout() {
-        return isTimeout;
+        synchronized (isTimeOutLock) {
+            return isTimeout;
+        }
     }
 
     void stopTimer() {
-        if (isAlive()) this.interrupt();
+        synchronized (isTimeOutLock) {
+            if (!isTimeout) {
+                if (isAlive() && isSleeping.get())
+                    this.interrupt();
+                isStopRequested.set(true);
+            }
+        }
     }
 
     @Override
@@ -61,17 +79,23 @@ class TimeOut extends Thread {
 
     @Override
     public void run() {
-        try {
-            do {
+        do {
+            isSleeping.set(true);
+            try {
                 Thread.sleep(milliStep);
-                if (callback != null && milliSecondsLeft != 0) callback.onTick(milliSecondsLeft);
-                milliSecondsLeft -= milliStep;
-            } while (milliSecondsLeft >= 0);
+            } catch (InterruptedException e) {
+                isSleeping.set(false);
+                return;
+            }
+            isSleeping.set(false);
+            if (callback != null && milliSecondsLeft != 0)
+                callback.onTick(milliSecondsLeft);
+            milliSecondsLeft -= milliStep;
+        } while (milliSecondsLeft > 0 && !isStopRequested.get());
+        synchronized (isTimeOutLock) {
             isTimeout = true;
-            if (callback != null) callback.onTimeOut();
-        } catch (InterruptedException e) {
-            return;
         }
+        if (callback != null && !isStopRequested.get()) callback.onTimeOut();
     }
 
     interface TimeOutCallback {
