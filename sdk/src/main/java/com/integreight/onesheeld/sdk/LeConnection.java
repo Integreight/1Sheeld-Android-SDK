@@ -165,6 +165,7 @@ class LeConnection extends OneSheeldConnection {
             public void onTick(long milliSecondsLeft) {
             }
         });
+        sendingPendingBytesTimeOut.setName("SendingPendingBytesTimeOut");
     }
 
     @Override
