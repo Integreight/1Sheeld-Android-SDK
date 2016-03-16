@@ -31,7 +31,7 @@ abstract class ArrayUtils {
     }
 
     static byte[] concatenateBytesArrays(byte[] firstArray, byte[] secondArray) {
-        if (firstArray == null && secondArray == null) return new byte[]{};
+        if (firstArray == null && secondArray == null) return null;
         else if (firstArray == null) return secondArray;
         else if (secondArray == null) return firstArray;
         else {
