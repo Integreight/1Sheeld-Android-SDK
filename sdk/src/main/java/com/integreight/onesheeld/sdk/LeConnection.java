@@ -40,6 +40,7 @@ class LeConnection extends OneSheeldConnection {
     private boolean isConnectionSuccessful;
     private byte[] pendingSending;
     private TimeOut sendingPendingBytesTimeOut;
+    private final Object writeLock;
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -115,6 +116,7 @@ class LeConnection extends OneSheeldConnection {
         this.hasGattCallbackReplied = false;
         this.isConnectionSuccessful = false;
         this.pendingSending = new byte[]{};
+        this.writeLock = new Object();
     }
 
     private void notifyConnectionFailure() {
@@ -140,18 +142,22 @@ class LeConnection extends OneSheeldConnection {
 
     private void initSendingPendingBytesTimeOut() {
         stopSendingPendingBytesTimeOut();
-        sendingPendingBytesTimeOut = new TimeOut(20, 20, new TimeOut.TimeOutCallback() {
+        sendingPendingBytesTimeOut = new TimeOut(100, 100, new TimeOut.TimeOutCallback() {
             @Override
             public void onTimeOut() {
-                synchronized (writeBuffer) {
-                    for (int i = 0; i < pendingSending.length; i += MAX_DATA_LENGTH_PER_WRITE) {
-                        byte[] subArray = (i + MAX_DATA_LENGTH_PER_WRITE > pendingSending.length) ?
-                                ArrayUtils.copyOfRange(pendingSending, i, pendingSending.length) :
-                                ArrayUtils.copyOfRange(pendingSending, i, i + MAX_DATA_LENGTH_PER_WRITE);
-                        writeBuffer.add(subArray);
+                synchronized (writeLock) {
+                    synchronized (writeBuffer) {
+                        if (pendingSending.length >= 0) {
+                            for (int i = 0; i < pendingSending.length; i += MAX_DATA_LENGTH_PER_WRITE) {
+                                byte[] subArray = (i + MAX_DATA_LENGTH_PER_WRITE > pendingSending.length) ?
+                                        ArrayUtils.copyOfRange(pendingSending, i, pendingSending.length) :
+                                        ArrayUtils.copyOfRange(pendingSending, i, i + MAX_DATA_LENGTH_PER_WRITE);
+                                writeBuffer.add(subArray);
+                            }
+                            pendingSending = new byte[]{};
+                            flushWriteBuffer();
+                        }
                     }
-                    pendingSending = new byte[]{};
-                    flushWriteBuffer();
                 }
             }
 
@@ -167,27 +173,30 @@ class LeConnection extends OneSheeldConnection {
                 bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID) == null) {
             return false;
         }
-        synchronized (writeBuffer) {
-            if (pendingSending.length <= 0) initSendingPendingBytesTimeOut();
-            pendingSending = ArrayUtils.concatenateBytesArrays(pendingSending, buffer);
-            if (pendingSending.length < 20) {
-                return true;
-            }
-            stopSendingPendingBytesTimeOut();
-            boolean isDataLeft = false;
-            for (int i = 0; i < pendingSending.length; i += MAX_DATA_LENGTH_PER_WRITE) {
-                if (i + MAX_DATA_LENGTH_PER_WRITE > pendingSending.length) {
-                    pendingSending = ArrayUtils.copyOfRange(pendingSending, i, pendingSending.length);
-                    if (pendingSending.length > 0) initSendingPendingBytesTimeOut();
-                    isDataLeft = true;
-                    break;
-                } else {
-                    byte[] subArray = ArrayUtils.copyOfRange(pendingSending, i, i + MAX_DATA_LENGTH_PER_WRITE);
-                    writeBuffer.add(subArray);
+        synchronized (writeLock) {
+            synchronized (writeBuffer) {
+                if (pendingSending.length <= 0 && buffer.length < 20)
+                    initSendingPendingBytesTimeOut();
+                pendingSending = ArrayUtils.concatenateBytesArrays(pendingSending, buffer);
+                if (pendingSending.length < 20) {
+                    return true;
                 }
+                if (sendingPendingBytesTimeOut != null) sendingPendingBytesTimeOut.resetTimer();
+                boolean isDataLeft = false;
+                for (int i = 0; i < pendingSending.length; i += MAX_DATA_LENGTH_PER_WRITE) {
+                    if (i + MAX_DATA_LENGTH_PER_WRITE > pendingSending.length) {
+                        pendingSending = ArrayUtils.copyOfRange(pendingSending, i, pendingSending.length);
+                        if (pendingSending.length > 0) initSendingPendingBytesTimeOut();
+                        isDataLeft = true;
+                        break;
+                    } else {
+                        byte[] subArray = ArrayUtils.copyOfRange(pendingSending, i, i + MAX_DATA_LENGTH_PER_WRITE);
+                        writeBuffer.add(subArray);
+                    }
+                }
+                if (!isDataLeft) pendingSending = new byte[]{};
+                return flushWriteBuffer();
             }
-            if (!isDataLeft) pendingSending = new byte[]{};
-            return flushWriteBuffer();
         }
     }
 
@@ -200,7 +209,7 @@ class LeConnection extends OneSheeldConnection {
         BluetoothGattCharacteristic commChar = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
         synchronized (writeBuffer) {
             while (!writeBuffer.isEmpty()) {
-                byte[] byteArrayInProgress = writeBuffer.poll();
+                byte[] byteArrayInProgress = writeBuffer.peek();
                 boolean isSet = false;
                 for (int i = 0; i < 3; i++) {
                     if (commChar.setValue(byteArrayInProgress)) {
@@ -209,16 +218,15 @@ class LeConnection extends OneSheeldConnection {
                     }
                 }
                 if (!isSet) {
-                    writeBuffer.clear();
                     return false;
                 }
                 bluetoothGatt.writeCharacteristic(commChar);
                 try {
                     writeBuffer.wait();
                 } catch (InterruptedException e) {
-                    writeBuffer.clear();
                     return false;
                 }
+                writeBuffer.poll();
             }
         }
         return true;
@@ -274,8 +282,8 @@ class LeConnection extends OneSheeldConnection {
         readBuffer.clear();
         synchronized (writeBuffer) {
             writeBuffer.clear();
-            writeBuffer.notifyAll();
             pendingSending = new byte[]{};
+            writeBuffer.notifyAll();
         }
         synchronized (connectionLock) {
             isConnectionSuccessful = false;
