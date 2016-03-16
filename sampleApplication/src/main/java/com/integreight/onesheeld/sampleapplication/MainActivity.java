@@ -48,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout oneSheeldLinearLayout;
     private ArrayList<String> connectedDevicesNames;
     private ArrayList<String> scannedDevicesNames;
-    private Map<String, OneSheeldDevice> oneSheeldScannedDevices;
-    private Map<String, OneSheeldDevice> oneSheeldConnectedDevices;
+    private ArrayList<OneSheeldDevice> oneSheeldScannedDevices;
+    private ArrayList<OneSheeldDevice> oneSheeldConnectedDevices;
     private ArrayAdapter<String> connectedDevicesArrayAdapter;
     private ArrayAdapter<String> scannedDevicesArrayAdapter;
     private OneSheeldDevice selectedConnectedDevice = null;
@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
         @Override
         public void onDeviceFind(OneSheeldDevice device) {
-            oneSheeldScannedDevices.put(device.getAddress(), device);
+            oneSheeldScannedDevices.add(device);
             scannedDevicesNames.add(device.getName());
             scannedDevicesArrayAdapter.notifyDataSetChanged();
         }
@@ -187,8 +187,8 @@ public class MainActivity extends AppCompatActivity {
     private OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
         @Override
         public void onConnect(final OneSheeldDevice device) {
-            oneSheeldScannedDevices.remove(device.getAddress());
-            oneSheeldConnectedDevices.put(device.getAddress(), device);
+            oneSheeldScannedDevices.remove(device);
+            oneSheeldConnectedDevices.add(device);
             final String deviceName = device.getName();
             uiThreadHandler.post(new Runnable() {
                 @Override
@@ -226,9 +226,9 @@ public class MainActivity extends AppCompatActivity {
                     oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
                 }
             });
-            oneSheeldConnectedDevices.remove(device.getAddress());
-            if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.containsKey(device.getAddress())) {
-                oneSheeldScannedDevices.put(device.getAddress(), device);
+            oneSheeldConnectedDevices.remove(device);
+            if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.contains(device)) {
+                oneSheeldScannedDevices.add(device);
                 scannedDevicesNames.add(device.getName());
             }
             bluetoothTestingDialog.dismiss();
@@ -252,14 +252,14 @@ public class MainActivity extends AppCompatActivity {
     private AdapterView.OnItemClickListener scannedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedScanedDevice = (OneSheeldDevice) oneSheeldScannedDevices.values().toArray()[position];
+            selectedScanedDevice = oneSheeldScannedDevices.get(position);
             connectButton.setEnabled(true);
         }
     };
     private AdapterView.OnItemClickListener connectedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedConnectedDevice = (OneSheeldDevice) oneSheeldConnectedDevices.values().toArray()[position];
+            selectedConnectedDevice = oneSheeldConnectedDevices.get(position);
             oneSheeldNameTextView.setText(selectedConnectedDevice.getName());
             oneSheeldLinearLayout.setVisibility(View.VISIBLE);
             disconnectButton.setEnabled(true);
@@ -301,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickRenameAll(View v) {
-        for (OneSheeldDevice device : oneSheeldConnectedDevices.values()) {
+        for (OneSheeldDevice device : oneSheeldConnectedDevices) {
             pendingRenames.put(device.getAddress(), device.getName());
             device.rename("1Sheeld #" + (device.isTypePlus() ? getRandomChars(2) : getRandomChars(4)));
         }
@@ -402,8 +402,8 @@ public class MainActivity extends AppCompatActivity {
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
-        oneSheeldScannedDevices = new HashMap<>();
-        oneSheeldConnectedDevices = new HashMap<>();
+        oneSheeldScannedDevices = new ArrayList<>();
+        oneSheeldConnectedDevices = new ArrayList<>();
         pendingRenames = new HashMap<>();
         connectedDevicesListView.setAdapter(connectedDevicesArrayAdapter);
         scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
