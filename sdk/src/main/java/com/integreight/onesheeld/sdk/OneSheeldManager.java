@@ -645,10 +645,7 @@ public class OneSheeldManager {
         if (isScanning || (bluetoothAdapter != null && bluetoothAdapter.isDiscovering())) {
             bluetoothAdapter.cancelDiscovery();
             stopScanningTimeOut();
-            try {
-                unregisterBluetoothBroadcast();
-            } catch (IllegalArgumentException e) {
-            }
+            unregisterBluetoothBroadcast();
             for (OneSheeldDevice d : otherBluetoothDevices.values()) {
                 if (d.getName().equals("") && !foundOneSheeldDevices.containsKey(d.getAddress())) {
                     d.setName(d.getAddress());
@@ -670,10 +667,7 @@ public class OneSheeldManager {
 
     private void registerBluetoothBroadcast() {
         if (OneSheeldSdk.getContext() != null) {
-            try {
-                OneSheeldSdk.getContext().unregisterReceiver(bluetoothBroadcastReceiver);
-            } catch (IllegalArgumentException ignored) {
-            }
+            unregisterBluetoothBroadcast();
             IntentFilter filter = new IntentFilter();
             filter.addAction(BluetoothDevice.ACTION_FOUND);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
