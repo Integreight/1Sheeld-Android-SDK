@@ -73,6 +73,10 @@ public class OneSheeldManager {
     };
 
     private OneSheeldManager() {
+        init();
+    }
+
+    void init() {
         connectionRetryCount = 0;
         connectionCallbacks = new CopyOnWriteArrayList<>();
         scanningCallbacks = new CopyOnWriteArrayList<>();
