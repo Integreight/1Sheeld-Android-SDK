@@ -62,10 +62,7 @@ public class OneSheeldManager {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (Build.VERSION.SDK_INT >= 18)
-                    addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED, device.getType() == BluetoothDevice.DEVICE_TYPE_LE);
-                else
-                    addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED, false);
+                addFoundDevice(device.getName(), device.getAddress(), device.getBondState() == BluetoothDevice.BOND_BONDED, Build.VERSION.SDK_INT >= 18 && device.getType() == BluetoothDevice.DEVICE_TYPE_LE);
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 finishScanning();
             }
