@@ -106,6 +106,13 @@ public class OneSheeldSdk {
             throw new NullPointerException("The passed context is null, have you checked its validity?");
         OneSheeldSdk.context = context;
         isInit = true;
+        boolean oldDebuggingLogStatus = isDebuggingEnabled;
+        isDebuggingEnabled = false;
+        getManager().removeAllCallbacks();
+        getManager().cancelConnecting();
+        getManager().cancelScanning();
+        getManager().init();
+        isDebuggingEnabled = oldDebuggingLogStatus;
         Log.i("OneSheeld Android SDK v" + versionName + " is initialized.");
     }
 
