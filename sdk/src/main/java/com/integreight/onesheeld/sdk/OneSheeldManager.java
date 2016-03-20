@@ -594,6 +594,15 @@ public class OneSheeldManager {
     }
 
     /**
+     * Remove all scanning, connection and error callbacks
+     */
+    public void removeAllCallbacks() {
+        scanningCallbacks.clear();
+        connectionCallbacks.clear();
+        errorCallbacks.clear();
+    }
+
+    /**
      * Cancel an pending scanning operations.
      */
     public void cancelScanning() {
