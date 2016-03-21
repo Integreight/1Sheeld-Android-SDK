@@ -147,7 +147,8 @@ public class OneSheeldManager {
      * @param scanningTimeOut the scanning time out value in seconds.
      */
     public void setScanningTimeOut(int scanningTimeOut) {
-        this.scanningTimeOutValue = scanningTimeOut;
+        if (scanningTimeOut > 0)
+            this.scanningTimeOutValue = scanningTimeOut;
     }
 
     /**
