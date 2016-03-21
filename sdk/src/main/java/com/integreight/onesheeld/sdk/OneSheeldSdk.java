@@ -108,12 +108,13 @@ public class OneSheeldSdk {
         isInit = true;
         boolean oldDebuggingLogStatus = isDebuggingEnabled;
         isDebuggingEnabled = false;
-        getManager().removeAllCallbacks();
+        getManager().disconnectAll();
         getManager().cancelConnecting();
         getManager().cancelScanning();
+        getManager().removeAllCallbacks();
         getManager().init();
         isDebuggingEnabled = oldDebuggingLogStatus;
-        Log.i("OneSheeld Android SDK v" + versionName + " is initialized.");
+        Log.i("OneSheeld Android SDK v" + versionName + " has initialized.");
     }
 
     static Context getContext() {
