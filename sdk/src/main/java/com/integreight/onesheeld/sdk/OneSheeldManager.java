@@ -292,7 +292,7 @@ public class OneSheeldManager {
      *
      * @param value the value
      */
-    public void setAutomaticConnectingRetries(boolean value) {
+    public void setAutomaticConnectingRetriesForClassicConnections(boolean value) {
         isAutomaticConnectingRetriesEnabled = value;
     }
 

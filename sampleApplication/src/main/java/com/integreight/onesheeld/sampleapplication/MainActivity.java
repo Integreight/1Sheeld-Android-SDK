@@ -500,7 +500,7 @@ public class MainActivity extends AppCompatActivity {
         OneSheeldSdk.init(this);
         oneSheeldManager = OneSheeldSdk.getManager();
         oneSheeldManager.setConnectionRetryCount(1);
-        oneSheeldManager.setAutomaticConnectingRetries(true);
+        oneSheeldManager.setAutomaticConnectingRetriesForClassicConnections(true);
         oneSheeldManager.addScanningCallback(scanningCallback);
         oneSheeldManager.addConnectionCallback(connectionCallback);
         oneSheeldManager.addErrorCallback(errorCallback);
