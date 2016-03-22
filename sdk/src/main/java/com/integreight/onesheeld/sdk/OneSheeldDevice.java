@@ -1280,6 +1280,9 @@ public class OneSheeldDevice {
             }
 
             Log.i("Device " + this.name + ": Device disconnected.");
+            stopRenamingBoardTimeOut();
+            stopFirmwareTestingTimeOut();
+            stopLibraryTestingTimeOut();
             onDisconnect();
         }
     }
@@ -1291,6 +1294,7 @@ public class OneSheeldDevice {
     private void stopRenamingBoardTimeOut() {
         if (renamingBoardTimeout != null)
             renamingBoardTimeout.stopTimer();
+        hasBoardRenamingStarted = false;
     }
 
     private void initRenamingBoardTimeOut() {
@@ -1327,6 +1331,7 @@ public class OneSheeldDevice {
     private void stopFirmwareTestingTimeOut() {
         if (firmwareTestingTimeout != null)
             firmwareTestingTimeout.stopTimer();
+        hasFirmwareTestStarted = false;
     }
 
     private void initFirmwareTestingTimeOut() {
@@ -1352,6 +1357,7 @@ public class OneSheeldDevice {
     private void stopLibraryTestingTimeOut() {
         if (libraryTestingTimeout != null)
             libraryTestingTimeout.stopTimer();
+        hasLibraryTestStarted = false;
     }
 
     private void initLibraryTestingTimeOut() {
