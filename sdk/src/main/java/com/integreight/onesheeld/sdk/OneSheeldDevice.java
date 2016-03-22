@@ -762,23 +762,23 @@ public class OneSheeldDevice {
         }
     }
 
-    public void rename(String name) {
+    public boolean rename(String name) {
         if (name == null || name.length() <= 0)
-            return;
+            return false;
         else if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
-            return;
+            return false;
         } else if (hasBoardRenamingStarted) {
             Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
-            return;
+            return false;
         }
         renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
         hasBoardRenamingStarted = true;
-        sendBoardRenamingRequest(name);
+        return sendBoardRenamingRequest(name);
     }
 
-    private void sendBoardRenamingRequest(String name) {
-        if (name == null || name.length() <= 0) return;
+    private boolean sendBoardRenamingRequest(String name) {
+        if (name == null || name.length() <= 0) return false;
         if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
         else name = (name.length() > 14) ? name.substring(0, 14) : name;
         Log.i("Device " + this.name + ": Trying to rename the device to \"" + name + "\".");
@@ -787,15 +787,16 @@ public class OneSheeldDevice {
             sysex(BOARD_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
         }
         initRenamingBoardTimeOut();
+        return true;
     }
 
-    public void test() {
+    public boolean test() {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
-            return;
+            return false;
         } else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
             Log.i("Device " + this.name + ": device is in the middle of another test.");
-            return;
+            return false;
         }
         Log.i("Device " + this.name + ": Testing the device, both firmware and library.");
         String currentMillis = String.valueOf(System.currentTimeMillis());
@@ -817,6 +818,7 @@ public class OneSheeldDevice {
         testingFrame.addArgument(bytes);
         sendShieldFrame(testingFrame);
         initLibraryTestingTimeOut();
+        return true;
     }
 
     private void setAllPinsAsInput() {
