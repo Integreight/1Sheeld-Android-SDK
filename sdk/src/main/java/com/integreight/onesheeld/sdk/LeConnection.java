@@ -252,6 +252,7 @@ class LeConnection extends OneSheeldConnection {
     @Override
     protected synchronized boolean onConnectionInitiationRequest() {
         bluetoothGatt = device.getBluetoothDevice().connectGatt(OneSheeldSdk.getContext(), false, gattCallback);
+        BluetoothUtils.refreshDeviceCache(bluetoothGatt);
         synchronized (connectionLock) {
             isConnectionSuccessful = false;
             hasGattCallbackReplied = false;

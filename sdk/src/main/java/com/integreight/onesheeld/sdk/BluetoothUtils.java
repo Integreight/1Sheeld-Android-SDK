@@ -16,8 +16,10 @@
 
 package com.integreight.onesheeld.sdk;
 
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothSocket;
 import android.os.Build;
 
@@ -95,5 +97,17 @@ abstract class BluetoothUtils {
                 new Class[]{int.class});
 
         return (BluetoothSocket) m.invoke(device, 1);
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    static boolean refreshDeviceCache(BluetoothGatt gatt) {
+        try {
+            Method localMethod = gatt.getClass().getMethod("refresh", new Class[0]);
+            if (localMethod != null) {
+                return (boolean) (Boolean) localMethod.invoke(gatt, new Object[0]);
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 }
