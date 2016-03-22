@@ -1276,6 +1276,7 @@ public class OneSheeldDevice {
                 exitingCallbacksThread.interrupt();
             if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
                 enteringCallbacksThread.interrupt();
+            clearAllBuffers();
             queuedFrames.clear();
             synchronized (arduinoCallbacksLock) {
                 isInACallback = false;
