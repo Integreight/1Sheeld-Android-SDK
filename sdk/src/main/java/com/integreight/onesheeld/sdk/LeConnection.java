@@ -62,6 +62,7 @@ class LeConnection extends OneSheeldConnection {
                     BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                     if (commChar != null && (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 &&
                             (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+                        BluetoothUtils.setCharacteristicNotification(bluetoothGatt, commChar, true);
                         commChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
                         notifyConnectionSuccess();
                     } else notifyConnectionFailure();
@@ -262,15 +263,6 @@ class LeConnection extends OneSheeldConnection {
                 } catch (InterruptedException e) {
                     connectionInterrupt();
                     return false;
-                }
-            }
-        }
-        if(isConnectionSuccessful){
-            BluetoothGattService service = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
-            if (service != null) {
-                BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
-                if (commChar != null) {
-                    BluetoothUtils.setCharacteristicNotification(bluetoothGatt, commChar, true);
                 }
             }
         }
