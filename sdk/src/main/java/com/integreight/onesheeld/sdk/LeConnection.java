@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 class LeConnection extends OneSheeldConnection {
-    private final int MAX_BUFFER_SIZE = 1024;
     private final int MAX_DATA_LENGTH_PER_WRITE = 20;
     private OneSheeldDevice device;
     private BluetoothGatt bluetoothGatt;
