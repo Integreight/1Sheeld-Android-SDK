@@ -63,11 +63,8 @@ class LeConnection extends OneSheeldConnection {
                     BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                     if (commChar != null && (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 &&
                             (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
-                        gatt.setCharacteristicNotification(commChar, true);
                         commChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-                        {
-                            notifyConnectionSuccess();
-                        }
+                        notifyConnectionSuccess();
                     } else notifyConnectionFailure();
                 } else
                     notifyConnectionFailure();
@@ -269,6 +266,15 @@ class LeConnection extends OneSheeldConnection {
                 }
             }
         }
+        if(isConnectionSuccessful){
+            BluetoothGattService service = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
+            if (service != null) {
+                BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
+                if (commChar != null) {
+                    BluetoothUtils.setCharacteristicNotification(bluetoothGatt, commChar, true);
+                }
+            }
+        }
         return isConnectionSuccessful;
     }
 
@@ -279,7 +285,7 @@ class LeConnection extends OneSheeldConnection {
             if (service != null) {
                 BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                 if (commChar != null) {
-                    bluetoothGatt.setCharacteristicNotification(commChar, false);
+                    BluetoothUtils.setCharacteristicNotification(bluetoothGatt, commChar, false);
                 }
             }
             bluetoothGatt.close();
