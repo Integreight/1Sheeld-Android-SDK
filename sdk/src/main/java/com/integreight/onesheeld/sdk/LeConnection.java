@@ -272,13 +272,6 @@ class LeConnection extends OneSheeldConnection {
     @Override
     protected void onClose() {
         if (bluetoothGatt != null) {
-            BluetoothGattService service = bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
-            if (service != null) {
-                BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
-                if (commChar != null) {
-                    BluetoothUtils.setCharacteristicNotification(bluetoothGatt, commChar, false);
-                }
-            }
             bluetoothGatt.close();
             bluetoothGatt = null;
         }
