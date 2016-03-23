@@ -808,15 +808,15 @@ public class OneSheeldDevice {
         }
         correctTestingChallengeAnswer = (byte) (correctAnswer % 256);
         hasFirmwareTestStarted = true;
-        synchronized (sendingDataLock) {
-            sysex(BOARD_TESTING, bytes);
-        }
-        initFirmwareTestingTimeOut();
         hasLibraryTestStarted = true;
         ShieldFrame testingFrame = new ShieldFrame(CONFIGURATION_SHIELD_ID, LIBRARY_TESTING_CHALLENGE_REQUEST);
         testingFrame.addArgument("Are you ok?");
         testingFrame.addArgument(bytes);
-        sendShieldFrame(testingFrame);
+        synchronized (sendingDataLock) {
+            sysex(BOARD_TESTING, bytes);
+            sendShieldFrame(testingFrame);
+        }
+        initFirmwareTestingTimeOut();
         initLibraryTestingTimeOut();
         return true;
     }
