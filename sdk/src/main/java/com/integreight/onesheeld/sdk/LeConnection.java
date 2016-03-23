@@ -33,7 +33,7 @@ class LeConnection extends OneSheeldConnection {
     private final int MAX_DATA_LENGTH_PER_WRITE = 20;
     private OneSheeldDevice device;
     private BluetoothGatt bluetoothGatt;
-    private Queue<Byte> readBuffer;
+    private final Queue<Byte> readBuffer;
     private final Queue<byte[]> writeBuffer;
     private final Object connectionLock;
     private boolean hasGattCallbackReplied;
@@ -97,8 +97,10 @@ class LeConnection extends OneSheeldConnection {
             if (gatt != null && characteristic != null) {
                 final byte[] data = characteristic.getValue();
                 if (data != null && data.length > 0) {
-                    for (byte dataByte : data) {
-                        readBuffer.add(dataByte);
+                    synchronized (readBuffer) {
+                        for (byte dataByte : data) {
+                            readBuffer.add(dataByte);
+                        }
                     }
                 }
             } else {
@@ -235,18 +237,20 @@ class LeConnection extends OneSheeldConnection {
 
     @Override
     byte[] read() {
-        if (bluetoothGatt == null || readBuffer.isEmpty() || !hasGattCallbackReplied || !isConnectionSuccessful)
-            return new byte[]{};
-        byte[] buffer = new byte[MAX_BUFFER_SIZE];
-        int readBufferSize = readBuffer.size();
-        int readBytesLength;
-        for (readBytesLength = 0; readBytesLength < readBufferSize && readBytesLength < buffer.length && !readBuffer.isEmpty(); readBytesLength++) {
-            Byte dataByte = readBuffer.poll();
-            if (dataByte != null)
-                buffer[readBytesLength] = dataByte;
-            else break;
+        synchronized (readBuffer) {
+            if (bluetoothGatt == null || readBuffer.isEmpty() || !hasGattCallbackReplied || !isConnectionSuccessful)
+                return new byte[]{};
+            int readBufferSize = readBuffer.size();
+            byte[] buffer = new byte[readBufferSize];
+            int readBytesLength;
+            for (readBytesLength = 0; readBytesLength < buffer.length; readBytesLength++) {
+                Byte dataByte = readBuffer.poll();
+                if (dataByte != null)
+                    buffer[readBytesLength] = dataByte;
+                else break;
+            }
+            return buffer;
         }
-        return ArrayUtils.copyOfRange(buffer, 0, readBytesLength);
     }
 
     @Override
@@ -281,7 +285,9 @@ class LeConnection extends OneSheeldConnection {
             bluetoothGatt.close();
             bluetoothGatt = null;
         }
-        readBuffer.clear();
+        synchronized (readBuffer) {
+            readBuffer.clear();
+        }
         synchronized (writeBuffer) {
             writeBuffer.clear();
             pendingSending = new byte[]{};
