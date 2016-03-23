@@ -116,7 +116,7 @@ abstract class BluetoothUtils {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    static boolean setCharacteristicNotification(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, boolean isEnabled){
+    static boolean setCharacteristicNotification(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, boolean isEnabled) {
         gatt.setCharacteristicNotification(characteristic, isEnabled);
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(DEVICE_CONFIG_CHARACTERISTIC);
         descriptor.setValue(isEnabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : new byte[]{0x00, 0x00});
