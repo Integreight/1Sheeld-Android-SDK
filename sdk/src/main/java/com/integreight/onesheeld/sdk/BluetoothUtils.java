@@ -20,6 +20,8 @@ import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothSocket;
 import android.os.Build;
 
@@ -31,6 +33,8 @@ abstract class BluetoothUtils {
     static final UUID BLUETOOTH_SPP_PROFILE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     static final UUID COMMUNICATIONS_SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
     static final UUID COMMUNICATIONS_CHAR_UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
+    static final UUID DEVICE_CONFIG_CHARACTERISTIC = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
 
     static boolean isBluetoothEnabled() {
         return doesDeviceHasBluetooth() && getBluetoothAdapter().isEnabled();
@@ -109,5 +113,13 @@ abstract class BluetoothUtils {
         } catch (Exception ignored) {
         }
         return false;
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    static boolean setCharacteristicNotification(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, boolean isEnabled){
+        gatt.setCharacteristicNotification(characteristic, isEnabled);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(DEVICE_CONFIG_CHARACTERISTIC);
+        descriptor.setValue(isEnabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : new byte[]{0x00, 0x00});
+        return gatt.writeDescriptor(descriptor);
     }
 }
