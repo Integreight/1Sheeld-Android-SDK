@@ -1339,7 +1339,7 @@ public class OneSheeldDevice {
 
     private void initFirmwareTestingTimeOut() {
         stopFirmwareTestingTimeOut();
-        firmwareTestingTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+        firmwareTestingTimeout = new TimeOut(4000, 100, new TimeOut.TimeOutCallback() {
             @Override
             public void onTimeOut() {
                 hasFirmwareTestStarted = false;
@@ -1365,7 +1365,7 @@ public class OneSheeldDevice {
 
     private void initLibraryTestingTimeOut() {
         stopLibraryTestingTimeOut();
-        libraryTestingTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+        libraryTestingTimeout = new TimeOut(4000, 100, new TimeOut.TimeOutCallback() {
             @Override
             public void onTimeOut() {
                 hasLibraryTestStarted = false;
