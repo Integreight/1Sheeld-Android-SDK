@@ -312,12 +312,12 @@ public class OneSheeldManager {
      * Disconnect all connected devices.
      */
     public void disconnectAll() {
-        Log.i("Manager: Disconnect all connected devices.");
         cancelConnecting();
         ArrayList<OneSheeldDevice> tempConnectedDevices;
         synchronized (connectedDevicesLock) {
             tempConnectedDevices = new ArrayList<>(connectedDevices.values());
         }
+        if (tempConnectedDevices.size() > 0) Log.i("Manager: Disconnect all connected devices.");
         for (OneSheeldDevice device : tempConnectedDevices) {
             disconnect(device);
         }
