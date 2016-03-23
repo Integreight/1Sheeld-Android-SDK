@@ -419,6 +419,7 @@ public class MainActivity extends AppCompatActivity {
     void initBluetoothTestingDialog() {
         bluetoothTestingDialog = new Dialog(this);
         bluetoothTestingDialog.setContentView(R.layout.testing_dialog);
+        bluetoothTestingDialog.setCanceledOnTouchOutside(false);
         bluetoothTestingSendingEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingSendingEditText);
         bluetoothTestingFramesNumberEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingFramesNumberEditText);
         bluetoothTestingReceivingEditText = (EditText) bluetoothTestingDialog.findViewById(R.id.bluetoothTestingReceivingEditText);
