@@ -49,6 +49,7 @@ class ClassicConnection extends OneSheeldConnection {
                     isConnectionSuccessful = false;
                 }
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 connectionInterrupt();
                 return false;
             } catch (Exception e) {

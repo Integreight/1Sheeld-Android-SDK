@@ -762,6 +762,7 @@ public class OneSheeldManager {
                         try {
                             Thread.sleep(2000);
                         } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
                             Log.i("Manager: Connection attempt to " + device.getName() + " interrupted. Aborting.");
                             return;
                         }

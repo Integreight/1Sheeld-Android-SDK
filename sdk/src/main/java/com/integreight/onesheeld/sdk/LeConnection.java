@@ -221,6 +221,7 @@ class LeConnection extends OneSheeldConnection {
                 try {
                     writeBuffer.wait();
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     return false;
                 }
                 writeBuffer.poll();
@@ -258,6 +259,7 @@ class LeConnection extends OneSheeldConnection {
                 try {
                     connectionLock.wait();
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     connectionInterrupt();
                     return false;
                 }

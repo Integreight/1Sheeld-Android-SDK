@@ -646,6 +646,7 @@ public class OneSheeldDevice {
                     if (sent) try {
                         Thread.sleep(200);
                     } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -1445,6 +1446,7 @@ public class OneSheeldDevice {
                     input = readByteFromBluetoothBuffer();
                     processInput((byte) input);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     return;
                 }
             }
@@ -1561,6 +1563,7 @@ public class OneSheeldDevice {
                         }
                     }
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     return;
                 } catch (ShieldFrameNotComplete e) {
                     Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");

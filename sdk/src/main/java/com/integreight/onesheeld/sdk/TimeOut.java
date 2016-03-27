@@ -84,6 +84,7 @@ class TimeOut extends Thread {
             try {
                 Thread.sleep(milliStep);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 isSleeping.set(false);
                 return;
             }
