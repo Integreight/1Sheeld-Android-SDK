@@ -763,7 +763,6 @@ public class OneSheeldManager {
                             Thread.sleep(2000);
                         } catch (InterruptedException e) {
                             Log.i("Manager: Connection attempt to " + device.getName() + " interrupted. Aborting.");
-                            if (connection != null) connection.close();
                             return;
                         }
                         Log.i("Manager: Trying to connect to " + device.getName() + ".");
@@ -777,7 +776,6 @@ public class OneSheeldManager {
                 @Override
                 public void onConnectionInterrupt() {
                     Log.i("Manager: Connection attempt to " + device.getName() + " interrupted. Aborting.");
-                    if (connection != null) connection.close();
                 }
             });
             Log.i("Manager: Trying to connect to " + device.getName() + ".");
