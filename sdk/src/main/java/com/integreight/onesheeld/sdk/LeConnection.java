@@ -34,7 +34,7 @@ class LeConnection extends OneSheeldConnection {
     private BluetoothGatt bluetoothGatt;
     private final Queue<Byte> readBuffer;
     private final Queue<byte[]> writeBuffer;
-    private final Object connectionLock;
+    private static final Object connectionLock = new Object();
     private boolean hasGattCallbackReplied;
     private boolean isConnectionSuccessful;
     private byte[] pendingSending;
@@ -111,7 +111,6 @@ class LeConnection extends OneSheeldConnection {
         this.device = device;
         this.readBuffer = new ConcurrentLinkedQueue<>();
         this.writeBuffer = new ConcurrentLinkedQueue<>();
-        this.connectionLock = new Object();
         this.hasGattCallbackReplied = false;
         this.isConnectionSuccessful = false;
         this.pendingSending = new byte[]{};
