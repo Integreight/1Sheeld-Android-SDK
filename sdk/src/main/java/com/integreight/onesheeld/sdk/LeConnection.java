@@ -43,14 +43,12 @@ class LeConnection extends OneSheeldConnection {
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
+            if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
                 gatt.discoverServices();
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                if (!isConnectionCallbackCalled()) {
-                    notifyConnectionFailure();
-                } else {
-                    close();
-                }
+            } else if (!isConnectionCallbackCalled()) {
+                notifyConnectionFailure();
+            } else {
+                close();
             }
         }
 
