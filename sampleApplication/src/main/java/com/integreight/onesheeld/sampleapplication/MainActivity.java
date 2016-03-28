@@ -17,6 +17,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.integreight.onesheeld.sdk.OneSheeldBaudRateQueryCallback;
 import com.integreight.onesheeld.sdk.OneSheeldBoardRenamingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldBoardTestingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldConnectionCallback;
@@ -28,6 +29,7 @@ import com.integreight.onesheeld.sdk.OneSheeldManager;
 import com.integreight.onesheeld.sdk.OneSheeldScanningCallback;
 import com.integreight.onesheeld.sdk.OneSheeldSdk;
 import com.integreight.onesheeld.sdk.ShieldFrame;
+import com.integreight.onesheeld.sdk.SupportedBaudRate;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private Button disconnectButton;
     private TextView oneSheeldNameTextView;
     private Spinner pinsSpinner;
+    private Spinner baudRateSpinner;
     private ProgressDialog scanningProgressDialog;
     private ProgressDialog connectionProgressDialog;
     private LinearLayout oneSheeldLinearLayout;
@@ -68,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView bluetoothTestingReceivingFramesCounterTextView;
     private Button bluetoothTestingStartButton;
     private Button bluetoothTestingResetButton;
+    private boolean isBaudRateQueried = false;
     private StringBuilder receivedStringBuilder = new StringBuilder();
     private BluetoothTestingSendingThread bluetoothTestingSendingThread;
 
@@ -183,6 +187,20 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private OneSheeldBaudRateQueryCallback baudRateQueryCallback = new OneSheeldBaudRateQueryCallback() {
+        @Override
+        public void onBaudRateQueryResponse(final OneSheeldDevice device, final SupportedBaudRate supportedBaudRate) {
+            if (isBaudRateQueried) {
+                uiThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, device.getName() + (supportedBaudRate != null ? ": Current baud rate: " + supportedBaudRate.getBaudRate() : ": Device responded with an unsupported baud rate"), Toast.LENGTH_SHORT).show();
+                    }
+                });
+                isBaudRateQueried = false;
+            }
+        }
+    };
     private OneSheeldConnectionCallback connectionCallback = new OneSheeldConnectionCallback() {
         @Override
         public void onConnect(final OneSheeldDevice device) {
@@ -207,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
             device.addTestingCallback(testingCallback);
             device.addRenamingCallback(renamingCallback);
             device.addDataCallback(dataCallback);
+            device.addBaudRateQueryCallback(baudRateQueryCallback);
         }
 
         @Override
@@ -312,6 +331,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onClickQueryBaudRate(View v) {
+        if (selectedConnectedDevice != null) {
+            isBaudRateQueried = true;
+            selectedConnectedDevice.queryBaudrate();
+        }
+    }
+
+    public void onClickSetBaudRate(View v) {
+        if (selectedConnectedDevice != null && baudRateSpinner != null) {
+            if (baudRateSpinner.getSelectedItem().toString().equals("9600")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._9600);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("14400")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._14400);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("19200")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._19200);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("28800")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._28800);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("38400")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._38400);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("57600")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._57600);
+            } else if (baudRateSpinner.getSelectedItem().toString().equals("115200")) {
+                selectedConnectedDevice.setBaudrate(SupportedBaudRate._115200);
+            }
+        }
+    }
+
     private String getRandomChars(int digitNum) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < digitNum; i++)
@@ -390,6 +436,7 @@ public class MainActivity extends AppCompatActivity {
         ListView scannedDevicesListView = (ListView) findViewById(R.id.scanned_list);
         oneSheeldNameTextView = (TextView) findViewById(R.id.selected_1sheeld_name);
         pinsSpinner = (Spinner) findViewById(R.id.pin_number);
+        baudRateSpinner = (Spinner) findViewById(R.id.baud_rate);
         connectedDevicesNames = new ArrayList<>();
         scannedDevicesNames = new ArrayList<>();
         connectedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, connectedDevicesNames);
@@ -398,6 +445,10 @@ public class MainActivity extends AppCompatActivity {
         for (int pinNum = 2; pinNum <= 13; pinNum++)
             pinNumbers.add(String.valueOf(pinNum));
         ArrayAdapter<String> pinsArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, pinNumbers);
+        ArrayList<String> baudRates = new ArrayList<>();
+        for (SupportedBaudRate baudRate : SupportedBaudRate.values())
+            baudRates.add(String.valueOf(baudRate.getBaudRate()));
+        ArrayAdapter<String> baudRatesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, baudRates);
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
@@ -407,6 +458,7 @@ public class MainActivity extends AppCompatActivity {
         connectedDevicesListView.setAdapter(connectedDevicesArrayAdapter);
         scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
         pinsSpinner.setAdapter(pinsArrayAdapter);
+        baudRateSpinner.setAdapter(baudRatesAdapter);
         scannedDevicesListView.setOnItemClickListener(scannedDevicesListViewClickListener);
         connectedDevicesListView.setOnItemClickListener(connectedDevicesListViewClickListener);
         initScanningProgressDialog();

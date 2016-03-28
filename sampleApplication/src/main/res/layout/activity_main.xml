@@ -218,6 +218,32 @@
                         android:text="Test Board" />
                 </LinearLayout>
 
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="3">
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:onClick="onClickQueryBaudRate"
+                        android:text="Query Baud Rate" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:onClick="onClickSetBaudRate"
+                        android:text="Set Baud Rate" />
+                    <Spinner
+                        android:id="@+id/baud_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/border" />
+                </LinearLayout>
+
                 <Button
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
