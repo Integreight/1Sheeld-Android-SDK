@@ -1182,7 +1182,13 @@ public class OneSheeldDevice {
 
     private void onFirmwareVersionQueryResponse(int majorVersion, int minorVersion) {
         for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
-            versionQueryCallback.onFirmwareVersionQueryResponse(new FirmwareVersion(majorVersion, minorVersion));
+            versionQueryCallback.onFirmwareVersionQueryResponse(OneSheeldDevice.this, new FirmwareVersion(majorVersion, minorVersion));
+        }
+    }
+
+    private void onBaudRateQueryResponse(SupportedBaudRate supportedBaudRate) {
+        for (OneSheeldBaudRateQueryCallback baudRateQueryCallback : baudRateQueryCallbacks) {
+            baudRateQueryCallback.onBaudRateQueryResponse(OneSheeldDevice.this, supportedBaudRate);
         }
     }
 
