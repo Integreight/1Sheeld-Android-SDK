@@ -80,6 +80,8 @@ public class OneSheeldDevice {
     private final byte REPORT_VERSION = (byte) 0xF9;
     private final byte START_SYSEX = (byte) 0xF0;
     private final byte END_SYSEX = (byte) 0xF7;
+    private final byte SET_BAUD_RATE = (byte) 0x5B;
+    private final byte QUERY_BAUD_RATE = (byte) 0x5C;
     private final byte BOARD_TESTING = (byte) 0x5D;
     private final byte BOARD_RENAMING = (byte) 0x5E;
     private final byte REPORT_INPUT_PINS = (byte) 0x5F;
@@ -121,6 +123,7 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
     private CopyOnWriteArrayList<OneSheeldBoardTestingCallback> testingCallbacks;
     private CopyOnWriteArrayList<OneSheeldBoardRenamingCallback> renamingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldBaudRateQueryCallback> baudRateQueryCallbacks;
     private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
     private TimeOut callbacksTimeout;
@@ -150,7 +153,8 @@ public class OneSheeldDevice {
     private int renamingRetries;
     private String pendingName;
     private boolean hasBoardRenamingStarted;
-    private final int MAX_RENAMING_RETRIES_NUMBER = 2;
+    private SupportedBaudRate currentBaudRate;
+    private boolean isBaudRateQueried;
 
 
     /**
@@ -243,6 +247,7 @@ public class OneSheeldDevice {
         versionQueryCallbacks = new CopyOnWriteArrayList<>();
         testingCallbacks = new CopyOnWriteArrayList<>();
         renamingCallbacks = new CopyOnWriteArrayList<>();
+        baudRateQueryCallbacks = new CopyOnWriteArrayList<>();
         queuedFrames = new ConcurrentLinkedQueue<>();
         isMuted = false;
         arduinoLibraryVersion = 0;
@@ -262,6 +267,8 @@ public class OneSheeldDevice {
         hasLibraryTestStarted = false;
         hasBoardRenamingStarted = false;
         renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+        currentBaudRate = SupportedBaudRate._115200;
+        isBaudRateQueried = false;
     }
 
     /**
@@ -354,6 +361,16 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Add a baud rate query callback.
+     *
+     * @param baudRateQueryCallback the baud rate query callback
+     */
+    public void addBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
+        if (baudRateQueryCallback != null && !baudRateQueryCallbacks.contains(baudRateQueryCallback))
+            baudRateQueryCallbacks.add(baudRateQueryCallback);
+    }
+
+    /**
      * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
@@ -414,6 +431,16 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Remove a baud rate query callback.
+     *
+     * @param baudRateQueryCallback the baud rate query callback
+     */
+    public void removeBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
+        if (baudRateQueryCallback != null && baudRateQueryCallbacks.contains(baudRateQueryCallback))
+            baudRateQueryCallbacks.remove(baudRateQueryCallback);
+    }
+
+    /**
      * Add all of the device callbacks in one method call.
      *
      * @param connectionCallback   the connection callback
@@ -423,13 +450,14 @@ public class OneSheeldDevice {
      * @param testingCallback      the testing callback
      * @param renamingCallback     the renaming callback
      */
-    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback, OneSheeldBoardTestingCallback testingCallback, OneSheeldBoardRenamingCallback renamingCallback) {
+    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback, OneSheeldBoardTestingCallback testingCallback, OneSheeldBoardRenamingCallback renamingCallback, OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
         addConnectionCallback(connectionCallback);
         addErrorCallback(errorCallback);
         addDataCallback(dataCallback);
         addVersionQueryCallback(versionQueryCallback);
         addTestingCallback(testingCallback);
         addRenamingCallback(renamingCallback);
+        addBaudRateQueryCallback(baudRateQueryCallback);
     }
 
     private void clearAllBuffers() {
@@ -989,6 +1017,24 @@ public class OneSheeldDevice {
         return isLibraryVersionQueried;
     }
 
+    /**
+     * Checks whether the device responded to the current baud rate query.
+     *
+     * @return the boolean
+     */
+    public boolean hasRespondedToBaudRateQuery() {
+        return isBaudRateQueried;
+    }
+
+    /**
+     * gets the current baud rate.
+     *
+     * @return the current baud rate
+     */
+    public SupportedBaudRate getCurrentBaudRate() {
+        return currentBaudRate;
+    }
+
     private void write(byte[] writeData) {
         if (isConnected() && connectedThread != null && connectedThread.isAlive())
             connectedThread.write(writeData);
@@ -1022,7 +1068,48 @@ public class OneSheeldDevice {
         queryFirmwareVersion();
         sendUnMuteFrame();
         notifyHardwareOfConnection();
+        queryBaudrate();
         queryLibraryVersion();
+    }
+
+    /**
+     * Query the current baud rate of the device.
+     */
+    public void queryBaudrate() {
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        isBaudRateQueried = false;
+        sendBaudRateQueryFrame();
+        Log.i("Device " + this.name + ": Baud rate queried.");
+    }
+
+    private void sendBaudRateQueryFrame() {
+        synchronized (sendingDataLock) {
+            sysex(QUERY_BAUD_RATE, new byte[]{});
+        }
+    }
+
+    /**
+     * Change the baud rate of the device.
+     */
+    public void setBaudrate(SupportedBaudRate baudRate) {
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        sendBaudRateSetFrame(baudRate.getFrameValue());
+        currentBaudRate = baudRate;
+        Log.i("Device " + this.name + ": Changed communications baud rate to " + baudRate.getBaudRate() + ".");
+    }
+
+    private void sendBaudRateSetFrame(byte baudRate) {
+        byte randomVal = (byte) (Math.random() * 255);
+        byte complement = (byte) (255 - randomVal & 0xFF);
+        synchronized (sendingDataLock) {
+            sysex(SET_BAUD_RATE, new byte[]{baudRate, randomVal, complement});
+        }
     }
 
     /**
@@ -1089,7 +1176,7 @@ public class OneSheeldDevice {
 
     private void onLibraryVersionQueryResponse(int version) {
         for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
-            versionQueryCallback.onLibraryVersionQueryResponse(version);
+            versionQueryCallback.onLibraryVersionQueryResponse(OneSheeldDevice.this, version);
         }
     }
 
@@ -1183,6 +1270,42 @@ public class OneSheeldDevice {
                                 }
                             }
                             closeConnection();
+                        } else if (sysexCommand == QUERY_BAUD_RATE && fixedSysexData.length == 1) {
+                            boolean isSupported = true;
+                            switch (fixedSysexData[0]) {
+                                case 0x01:
+                                    currentBaudRate = SupportedBaudRate._9600;
+                                    break;
+                                case 0x02:
+                                    currentBaudRate = SupportedBaudRate._14400;
+                                    break;
+                                case 0x03:
+                                    currentBaudRate = SupportedBaudRate._19200;
+                                    break;
+                                case 0x04:
+                                    currentBaudRate = SupportedBaudRate._28800;
+                                    break;
+                                case 0x05:
+                                    currentBaudRate = SupportedBaudRate._38400;
+                                    break;
+                                case 0x06:
+                                    currentBaudRate = SupportedBaudRate._57600;
+                                    break;
+                                case 0x07:
+                                    currentBaudRate = SupportedBaudRate._115200;
+                                    break;
+                                default:
+                                    isSupported = false;
+                                    break;
+                            }
+                            isBaudRateQueried = true;
+                            if (isSupported) {
+                                Log.i("Device " + this.name + ": Device responded with baud rate: " + currentBaudRate.getBaudRate() + ".");
+                                onBaudRateQueryResponse(currentBaudRate);
+                            } else {
+                                Log.i("Device " + this.name + ": Device responded with an unsupported baud rate.");
+                                onBaudRateQueryResponse(null);
+                            }
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
