@@ -99,6 +99,7 @@ public class OneSheeldDevice {
     private final Object sendingDataLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
     private final Object isConnectedLock = new Object();
+    private final int MAX_RENAMING_RETRIES_NUMBER = 2;
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;

@@ -73,6 +73,17 @@ public class OneSheeldManager {
         init();
     }
 
+    static OneSheeldManager getInstance() {
+        if (instance == null && OneSheeldSdk.isInit()) {
+            synchronized (OneSheeldManager.class) {
+                if (instance == null) {
+                    instance = new OneSheeldManager();
+                }
+            }
+        }
+        return instance;
+    }
+
     void init() {
         connectionRetryCount = 0;
         connectionCallbacks = new CopyOnWriteArrayList<>();
@@ -85,17 +96,6 @@ public class OneSheeldManager {
         currentState = ConnectionState.READY;
         bluetoothAdapter = BluetoothUtils.getBluetoothAdapter();
         isAutomaticConnectingRetriesEnabled = false;
-    }
-
-    static OneSheeldManager getInstance() {
-        if (instance == null && OneSheeldSdk.isInit()) {
-            synchronized (OneSheeldManager.class) {
-                if (instance == null) {
-                    instance = new OneSheeldManager();
-                }
-            }
-        }
-        return instance;
     }
 
     /**

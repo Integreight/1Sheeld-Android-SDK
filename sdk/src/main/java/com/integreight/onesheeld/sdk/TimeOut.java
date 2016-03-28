@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 class TimeOut extends Thread {
 
+    private final Object isTimeOutLock;
     private boolean isTimeout;
     private long milliSecondsLeft;
     private long totalMilliSeconds;
@@ -27,7 +28,6 @@ class TimeOut extends Thread {
     private TimeOutCallback callback;
     private AtomicBoolean isSleeping;
     private AtomicBoolean isStopRequested;
-    private final Object isTimeOutLock;
 
 
     TimeOut(long milliSeconds, long milliStep, TimeOutCallback callback) {

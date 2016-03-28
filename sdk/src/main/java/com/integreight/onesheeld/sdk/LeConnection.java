@@ -29,17 +29,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 class LeConnection extends OneSheeldConnection {
+    private static final Object connectionLock = new Object();
     private final int MAX_DATA_LENGTH_PER_WRITE = 20;
-    private OneSheeldDevice device;
-    private BluetoothGatt bluetoothGatt;
     private final Queue<Byte> readBuffer;
     private final Queue<byte[]> writeBuffer;
-    private static final Object connectionLock = new Object();
+    private final Object writeLock;
+    private OneSheeldDevice device;
+    private BluetoothGatt bluetoothGatt;
     private boolean hasGattCallbackReplied;
     private boolean isConnectionSuccessful;
     private byte[] pendingSending;
     private TimeOut sendingPendingBytesTimeOut;
-    private final Object writeLock;
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {

@@ -23,11 +23,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 class ClassicConnection extends OneSheeldConnection {
+    private final int MAX_BUFFER_SIZE = 1024;
     private BluetoothSocket socket;
     private boolean isDefaultConnectingRetriesEnabled;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private final int MAX_BUFFER_SIZE = 1024;
 
     ClassicConnection(OneSheeldDevice device, boolean isDefaultConnectingRetriesEnabled) {
         super(device);
