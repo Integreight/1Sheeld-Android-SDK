@@ -17,46 +17,36 @@
 package com.integreight.onesheeld.sdk;
 
 /**
- * Represents various testing events for {@link OneSheeldDevice}.
+ * Represents various renaming events for {@link OneSheeldDevice}.
  * <p>Most of the methods here gets called in a thread different than the UI thread.
  * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  */
-public abstract class OneSheeldBoardTestingCallback {
-    /**
-     * This method gets called when the device responds with an answer to the firmware challenge.
-     *
-     * @param device   the device where the event occurred
-     * @param isPassed represents the status of the test
-     */
-    public void onFirmwareTestResult(OneSheeldDevice device, boolean isPassed) {
-
-    }
+public abstract class OneSheeldRenamingCallback {
 
     /**
-     * This method gets called when the device responds with an answer to the library challenge.
-     *
-     * @param device   the device where the event occurred
-     * @param isPassed represents the status of the test
-     */
-    public void onLibraryTestResult(OneSheeldDevice device, boolean isPassed) {
-
-    }
-
-    /**
-     * This method gets called when the device does not respond with an answer to the firmware challenge.
+     * This method gets called when the device does not respond with a confirmation for the new board name.
      *
      * @param device the device where the event occurred
      */
-    public void onFirmwareTestTimeOut(OneSheeldDevice device) {
+    public void onRenamingAttemptTimeOut(OneSheeldDevice device) {
 
     }
 
     /**
-     * This method gets called when the device does not respond with an answer to the library challenge.
+     * This method gets called when all the attempts to rename the board fail.
      *
      * @param device the device where the event occurred
      */
-    public void onLibraryTestTimeOut(OneSheeldDevice device) {
+    public void onAllRenamingAttemptsTimeOut(OneSheeldDevice device) {
+
+    }
+
+    /**
+     * This method gets called when the device confirms the new board name.
+     *
+     * @param device the device where the event occurred
+     */
+    public void onRenamingRequestReceivedSuccessfully(OneSheeldDevice device) {
 
     }
 }

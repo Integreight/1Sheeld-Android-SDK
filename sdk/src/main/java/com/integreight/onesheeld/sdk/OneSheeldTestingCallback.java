@@ -17,36 +17,46 @@
 package com.integreight.onesheeld.sdk;
 
 /**
- * Represents various renaming events for {@link OneSheeldDevice}.
+ * Represents various testing events for {@link OneSheeldDevice}.
  * <p>Most of the methods here gets called in a thread different than the UI thread.
  * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  */
-public abstract class OneSheeldBoardRenamingCallback {
-
+public abstract class OneSheeldTestingCallback {
     /**
-     * This method gets called when the device does not respond with a confirmation for the new board name.
+     * This method gets called when the device responds with an answer to the firmware challenge.
      *
-     * @param device the device where the event occurred
+     * @param device   the device where the event occurred
+     * @param isPassed represents the status of the test
      */
-    public void onRenamingAttemptTimeOut(OneSheeldDevice device) {
+    public void onFirmwareTestResult(OneSheeldDevice device, boolean isPassed) {
 
     }
 
     /**
-     * This method gets called when all the attempts to rename the board fail.
+     * This method gets called when the device responds with an answer to the library challenge.
      *
-     * @param device the device where the event occurred
+     * @param device   the device where the event occurred
+     * @param isPassed represents the status of the test
      */
-    public void onAllRenamingAttemptsTimeOut(OneSheeldDevice device) {
+    public void onLibraryTestResult(OneSheeldDevice device, boolean isPassed) {
 
     }
 
     /**
-     * This method gets called when the device confirms the new board name.
+     * This method gets called when the device does not respond with an answer to the firmware challenge.
      *
      * @param device the device where the event occurred
      */
-    public void onRenamingRequestReceivedSuccessfully(OneSheeldDevice device) {
+    public void onFirmwareTestTimeOut(OneSheeldDevice device) {
+
+    }
+
+    /**
+     * This method gets called when the device does not respond with an answer to the library challenge.
+     *
+     * @param device the device where the event occurred
+     */
+    public void onLibraryTestTimeOut(OneSheeldDevice device) {
 
     }
 }

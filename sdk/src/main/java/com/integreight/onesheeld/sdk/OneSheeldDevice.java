@@ -121,8 +121,8 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldErrorCallback> errorCallbacks;
     private CopyOnWriteArrayList<OneSheeldDataCallback> dataCallbacks;
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
-    private CopyOnWriteArrayList<OneSheeldBoardTestingCallback> testingCallbacks;
-    private CopyOnWriteArrayList<OneSheeldBoardRenamingCallback> renamingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldTestingCallback> testingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldRenamingCallback> renamingCallbacks;
     private CopyOnWriteArrayList<OneSheeldBaudRateQueryCallback> baudRateQueryCallbacks;
     private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
@@ -152,7 +152,7 @@ public class OneSheeldDevice {
     private TimeOut renamingBoardTimeout;
     private int renamingRetries;
     private String pendingName;
-    private boolean hasBoardRenamingStarted;
+    private boolean hasRenamingStarted;
     private SupportedBaudRate currentBaudRate;
     private boolean isBaudRateQueried;
 
@@ -265,7 +265,7 @@ public class OneSheeldDevice {
         correctTestingChallengeAnswer = 0;
         hasFirmwareTestStarted = false;
         hasLibraryTestStarted = false;
-        hasBoardRenamingStarted = false;
+        hasRenamingStarted = false;
         renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
         currentBaudRate = SupportedBaudRate._115200;
         isBaudRateQueried = false;
@@ -345,7 +345,7 @@ public class OneSheeldDevice {
      *
      * @param testingCallback the testing callback
      */
-    public void addTestingCallback(OneSheeldBoardTestingCallback testingCallback) {
+    public void addTestingCallback(OneSheeldTestingCallback testingCallback) {
         if (testingCallback != null && !testingCallbacks.contains(testingCallback))
             testingCallbacks.add(testingCallback);
     }
@@ -354,8 +354,9 @@ public class OneSheeldDevice {
      * Add a renaming callback.
      *
      * @param renamingCallback the renaming callback
+     * @see OneSheeldRenamingCallback
      */
-    public void addRenamingCallback(OneSheeldBoardRenamingCallback renamingCallback) {
+    public void addRenamingCallback(OneSheeldRenamingCallback renamingCallback) {
         if (renamingCallback != null && !renamingCallbacks.contains(renamingCallback))
             renamingCallbacks.add(renamingCallback);
     }
@@ -395,7 +396,7 @@ public class OneSheeldDevice {
      *
      * @param renamingCallback the renaming callback
      */
-    public void removeRenamingCallback(OneSheeldBoardRenamingCallback renamingCallback) {
+    public void removeRenamingCallback(OneSheeldRenamingCallback renamingCallback) {
         if (renamingCallback != null && renamingCallbacks.contains(renamingCallback))
             renamingCallbacks.remove(renamingCallback);
     }
@@ -405,7 +406,7 @@ public class OneSheeldDevice {
      *
      * @param testingCallback the testing callback
      */
-    public void removeTestingCallback(OneSheeldBoardTestingCallback testingCallback) {
+    public void removeTestingCallback(OneSheeldTestingCallback testingCallback) {
         if (testingCallback != null && testingCallbacks.contains(testingCallback))
             testingCallbacks.remove(testingCallback);
     }
@@ -798,16 +799,16 @@ public class OneSheeldDevice {
         else if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
-        } else if (hasBoardRenamingStarted) {
+        } else if (hasRenamingStarted) {
             Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
             return false;
         }
         renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
-        hasBoardRenamingStarted = true;
-        return sendBoardRenamingRequest(name);
+        hasRenamingStarted = true;
+        return sendRenamingRequest(name);
     }
 
-    private boolean sendBoardRenamingRequest(String name) {
+    private boolean sendRenamingRequest(String name) {
         if (name == null || name.length() <= 0) return false;
         if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
         else name = (name.length() > 14) ? name.substring(0, 14) : name;
@@ -1262,16 +1263,16 @@ public class OneSheeldDevice {
                             else
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing failed.");
                             if (isConnected()) {
-                                for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                                    oneSheeldBoardTestingCallback.onFirmwareTestResult(OneSheeldDevice.this, isPassed);
+                                for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                                    oneSheeldTestingCallback.onFirmwareTestResult(OneSheeldDevice.this, isPassed);
                             }
                         } else if (sysexCommand == BOARD_RENAMING) {
                             Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
                             this.name = pendingName;
-                            hasBoardRenamingStarted = false;
+                            hasRenamingStarted = false;
                             stopRenamingBoardTimeOut();
                             if (isConnected()) {
-                                for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                                for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
                                     renamingCallback.onRenamingRequestReceivedSuccessfully(OneSheeldDevice.this);
                                 }
                             }
@@ -1428,7 +1429,7 @@ public class OneSheeldDevice {
     private void stopRenamingBoardTimeOut() {
         if (renamingBoardTimeout != null)
             renamingBoardTimeout.stopTimer();
-        hasBoardRenamingStarted = false;
+        hasRenamingStarted = false;
     }
 
     private void initRenamingBoardTimeOut() {
@@ -1439,16 +1440,16 @@ public class OneSheeldDevice {
                 if (renamingRetries > 0 && isConnected()) {
                     renamingRetries--;
                     Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
-                    for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                    for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
                         renamingCallback.onRenamingAttemptTimeOut(OneSheeldDevice.this);
                     }
-                    sendBoardRenamingRequest(pendingName);
+                    sendRenamingRequest(pendingName);
                 } else {
                     renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
-                    hasBoardRenamingStarted = false;
+                    hasRenamingStarted = false;
                     Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting.");
                     if (isConnected()) {
-                        for (OneSheeldBoardRenamingCallback renamingCallback : renamingCallbacks) {
+                        for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
                             renamingCallback.onAllRenamingAttemptsTimeOut(OneSheeldDevice.this);
                         }
                     }
@@ -1476,8 +1477,8 @@ public class OneSheeldDevice {
                 hasFirmwareTestStarted = false;
                 Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing time-outed.");
                 if (isConnected()) {
-                    for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                        oneSheeldBoardTestingCallback.onFirmwareTestTimeOut(OneSheeldDevice.this);
+                    for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                        oneSheeldTestingCallback.onFirmwareTestTimeOut(OneSheeldDevice.this);
                 }
             }
 
@@ -1502,8 +1503,8 @@ public class OneSheeldDevice {
                 hasLibraryTestStarted = false;
                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing time-outed.");
                 if (isConnected()) {
-                    for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                        oneSheeldBoardTestingCallback.onLibraryTestTimeOut(OneSheeldDevice.this);
+                    for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                        oneSheeldTestingCallback.onLibraryTestTimeOut(OneSheeldDevice.this);
                 }
             }
 
@@ -1679,8 +1680,8 @@ public class OneSheeldDevice {
                                 Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
                             stopLibraryTestingTimeOut();
                             if (isConnected()) {
-                                for (OneSheeldBoardTestingCallback oneSheeldBoardTestingCallback : testingCallbacks)
-                                    oneSheeldBoardTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
+                                for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                                    oneSheeldTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
                             }
                         }
                     } else {

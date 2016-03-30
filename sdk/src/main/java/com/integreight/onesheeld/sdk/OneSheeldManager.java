@@ -282,7 +282,7 @@ public class OneSheeldManager {
      *
      * @return the boolean
      */
-    public boolean isAutomaticConnectingRetriesEnabled() {
+    public boolean isAutomaticConnectingRetriesForClassicConnectionsEnabled() {
         return isAutomaticConnectingRetriesEnabled;
     }
 
