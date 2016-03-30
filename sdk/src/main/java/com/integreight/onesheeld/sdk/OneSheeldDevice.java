@@ -213,6 +213,7 @@ public class OneSheeldDevice {
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
      *
      * @param address    the Bluetooth address of the device
+     * @param name       the name of the device
      * @param isTypePlus explicitly specify if this 1Sheeld is the plus version (BLE)
      * @throws InvalidBluetoothAddressException if the address is incorrect
      * @see InvalidBluetoothAddressException
@@ -881,6 +882,7 @@ public class OneSheeldDevice {
      * Rename the board. Note: if the new name does not have "1Sheeld" in its name, it will not be visible in any future scans by the SDK.
      *
      * @param name the new name
+     * @return true if the renaming request initiated successfully.
      * @throws NullPointerException if the passed name is null or zero length
      * @see OneSheeldRenamingCallback
      */
@@ -915,6 +917,7 @@ public class OneSheeldDevice {
     /**
      * Test the board, and make sure the firmware and library are working correctly.
      *
+     * @return true if the test sequence initiated successfully.
      * @see OneSheeldTestingCallback
      */
     public boolean test() {
@@ -1197,6 +1200,7 @@ public class OneSheeldDevice {
     /**
      * Change the baud rate of the device.
      *
+     * @param baudRate a supported baud rate.
      * @throws NullPointerException if the passed baud rate is null
      */
     public void setBaudrate(SupportedBaudRate baudRate) {
