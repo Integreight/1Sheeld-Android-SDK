@@ -18,16 +18,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.integreight.onesheeld.sdk.OneSheeldBaudRateQueryCallback;
-import com.integreight.onesheeld.sdk.OneSheeldBoardRenamingCallback;
-import com.integreight.onesheeld.sdk.OneSheeldBoardTestingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldConnectionCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDataCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDevice;
 import com.integreight.onesheeld.sdk.OneSheeldError;
 import com.integreight.onesheeld.sdk.OneSheeldErrorCallback;
 import com.integreight.onesheeld.sdk.OneSheeldManager;
+import com.integreight.onesheeld.sdk.OneSheeldRenamingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldScanningCallback;
 import com.integreight.onesheeld.sdk.OneSheeldSdk;
+import com.integreight.onesheeld.sdk.OneSheeldTestingCallback;
 import com.integreight.onesheeld.sdk.ShieldFrame;
 import com.integreight.onesheeld.sdk.SupportedBaudRate;
 
@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             scanningProgressDialog.dismiss();
         }
     };
-    private OneSheeldBoardTestingCallback testingCallback = new OneSheeldBoardTestingCallback() {
+    private OneSheeldTestingCallback testingCallback = new OneSheeldTestingCallback() {
         @Override
         public void onFirmwareTestResult(final OneSheeldDevice device, final boolean isPassed) {
             uiThreadHandler.post(new Runnable() {
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     };
-    private OneSheeldBoardRenamingCallback renamingCallback = new OneSheeldBoardRenamingCallback() {
+    private OneSheeldRenamingCallback renamingCallback = new OneSheeldRenamingCallback() {
         @Override
         public void onRenamingAttemptTimeOut(final OneSheeldDevice device) {
             uiThreadHandler.post(new Runnable() {
