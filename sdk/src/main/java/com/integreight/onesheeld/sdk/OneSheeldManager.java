@@ -128,7 +128,9 @@ public class OneSheeldManager {
      * @param retryCount the new retry count value.
      */
     public void setConnectionRetryCount(int retryCount) {
-        this.connectionRetryCount = retryCount;
+        if (retryCount >= 0) {
+            this.connectionRetryCount = retryCount;
+        }
     }
 
     /**
@@ -317,7 +319,10 @@ public class OneSheeldManager {
         synchronized (connectedDevicesLock) {
             tempConnectedDevices = new ArrayList<>(connectedDevices.values());
         }
-        if (tempConnectedDevices.size() > 0) Log.i("Manager: Disconnect all connected devices.");
+        if (tempConnectedDevices.size() > 0)
+            Log.i("Manager: Disconnect all connected devices.");
+        else
+            Log.i("Manager: There are no connected devices to disconnect.");
         for (OneSheeldDevice device : tempConnectedDevices) {
             disconnect(device);
         }

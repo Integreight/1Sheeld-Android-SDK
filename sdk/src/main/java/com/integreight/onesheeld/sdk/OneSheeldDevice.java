@@ -886,7 +886,7 @@ public class OneSheeldDevice {
      */
     public boolean rename(String name) {
         if (name == null || name.length() <= 0)
-            return false;
+            throw new NullPointerException("The passed name is invalid, have you checked its validity?");
         else if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
@@ -1200,6 +1200,8 @@ public class OneSheeldDevice {
      * @throws NullPointerException if the passed baud rate is null
      */
     public void setBaudrate(SupportedBaudRate baudRate) {
+        if (baudRate == null)
+            throw new NullPointerException("The passed baud rate is null, have you checked its validity?");
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
