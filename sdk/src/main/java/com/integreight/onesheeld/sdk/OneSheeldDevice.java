@@ -18,14 +18,10 @@ package com.integreight.onesheeld.sdk;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.Build;
 import android.os.SystemClock;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -84,6 +80,10 @@ public class OneSheeldDevice {
     private final byte REPORT_VERSION = (byte) 0xF9;
     private final byte START_SYSEX = (byte) 0xF0;
     private final byte END_SYSEX = (byte) 0xF7;
+    private final byte SET_BAUD_RATE = (byte) 0x5B;
+    private final byte QUERY_BAUD_RATE = (byte) 0x5C;
+    private final byte BOARD_TESTING = (byte) 0x5D;
+    private final byte BOARD_RENAMING = (byte) 0x5E;
     private final byte REPORT_INPUT_PINS = (byte) 0x5F;
     private final byte BLUETOOTH_RESET = (byte) 0x61;
     private final byte IS_ALIVE = (byte) 0x62;
@@ -91,6 +91,8 @@ public class OneSheeldDevice {
     private final byte SERIAL_DATA = (byte) 0x66;
     private final byte CONFIGURATION_SHIELD_ID = (byte) 0x00;
     private final byte BT_CONNECTED = (byte) 0x01;
+    private final byte LIBRARY_TESTING_CHALLENGE_REQUEST = (byte) 0x05;
+    private final byte LIBRARY_TESTING_CHALLENGE_RESPONSE = (byte) 0x05;
     private final byte QUERY_LIBRARY_VERSION = (byte) 0x03;
     private final byte LIBRARY_VERSION_RESPONSE = (byte) 0x01;
     private final byte IS_HARDWARE_CONNECTED_QUERY = (byte) 0x02;
@@ -99,7 +101,7 @@ public class OneSheeldDevice {
     private final Object sendingDataLock = new Object();
     private final Object arduinoCallbacksLock = new Object();
     private final Object isConnectedLock = new Object();
-    private final int MAX_BUFFER_SIZE = 1024;
+    private final int MAX_RENAMING_RETRIES_NUMBER = 2;
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
@@ -119,6 +121,9 @@ public class OneSheeldDevice {
     private CopyOnWriteArrayList<OneSheeldErrorCallback> errorCallbacks;
     private CopyOnWriteArrayList<OneSheeldDataCallback> dataCallbacks;
     private CopyOnWriteArrayList<OneSheeldVersionQueryCallback> versionQueryCallbacks;
+    private CopyOnWriteArrayList<OneSheeldTestingCallback> testingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldRenamingCallback> renamingCallbacks;
+    private CopyOnWriteArrayList<OneSheeldBaudRateQueryCallback> baudRateQueryCallbacks;
     private int arduinoLibraryVersion;
     private Thread exitingCallbacksThread, enteringCallbacksThread;
     private TimeOut callbacksTimeout;
@@ -138,6 +143,19 @@ public class OneSheeldDevice {
     private int[] digitalOutputData = {0, 0, 0};
     private int[] digitalInputData = {0, 0, 0};
     private boolean isPinDebuggingEnabled;
+    private boolean isTypePlus;
+    private byte correctTestingChallengeAnswer;
+    private boolean hasFirmwareTestStarted;
+    private boolean hasLibraryTestStarted;
+    private TimeOut firmwareTestingTimeout;
+    private TimeOut libraryTestingTimeout;
+    private TimeOut renamingBoardTimeout;
+    private int renamingRetries;
+    private String pendingName;
+    private boolean hasRenamingStarted;
+    private SupportedBaudRate currentBaudRate;
+    private boolean isBaudRateQueried;
+
 
     /**
      * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
@@ -152,6 +170,25 @@ public class OneSheeldDevice {
         this.name = address;
         this.address = address;
         this.isPaired = false;
+        this.isTypePlus = false;
+        initialize();
+    }
+
+    /**
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific address.
+     * <p>The name of the device will be the same as the address.</p>
+     *
+     * @param address    the Bluetooth address of the device
+     * @param isTypePlus explicitly specify if this 1Sheeld is the plus version (BLE)
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
+     */
+    public OneSheeldDevice(String address, boolean isTypePlus) {
+        checkBluetoothAddress(address);
+        this.name = address;
+        this.address = address;
+        this.isPaired = false;
+        this.isTypePlus = isTypePlus;
         initialize();
     }
 
@@ -167,15 +204,35 @@ public class OneSheeldDevice {
         checkBluetoothAddress(address);
         this.name = name;
         this.address = address;
-        isPaired = false;
+        this.isPaired = false;
+        this.isTypePlus = false;
         initialize();
     }
 
-    OneSheeldDevice(String address, String name, boolean isPaired) {
+    /**
+     * Instantiates a new <tt>OneSheeldDevice</tt> with a specific name and address.
+     *
+     * @param address    the Bluetooth address of the device
+     * @param name       the name of the device
+     * @param isTypePlus explicitly specify if this 1Sheeld is the plus version (BLE)
+     * @throws InvalidBluetoothAddressException if the address is incorrect
+     * @see InvalidBluetoothAddressException
+     */
+    public OneSheeldDevice(String address, String name, boolean isTypePlus) {
+        checkBluetoothAddress(address);
+        this.name = name;
+        this.address = address;
+        this.isPaired = false;
+        this.isTypePlus = isTypePlus;
+        initialize();
+    }
+
+    OneSheeldDevice(String address, String name, boolean isPaired, boolean isTypePlus) {
         checkBluetoothAddress(address);
         this.name = name;
         this.address = address;
         this.isPaired = isPaired;
+        this.isTypePlus = isTypePlus;
         initialize();
     }
 
@@ -189,6 +246,9 @@ public class OneSheeldDevice {
         errorCallbacks = new CopyOnWriteArrayList<>();
         dataCallbacks = new CopyOnWriteArrayList<>();
         versionQueryCallbacks = new CopyOnWriteArrayList<>();
+        testingCallbacks = new CopyOnWriteArrayList<>();
+        renamingCallbacks = new CopyOnWriteArrayList<>();
+        baudRateQueryCallbacks = new CopyOnWriteArrayList<>();
         queuedFrames = new ConcurrentLinkedQueue<>();
         isMuted = false;
         arduinoLibraryVersion = 0;
@@ -203,12 +263,20 @@ public class OneSheeldDevice {
         multiByteChannel = 0;
         storedInputData = new byte[MAX_DATA_BYTES];
         isPinDebuggingEnabled = false;
+        correctTestingChallengeAnswer = 0;
+        hasFirmwareTestStarted = false;
+        hasLibraryTestStarted = false;
+        hasRenamingStarted = false;
+        renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+        currentBaudRate = SupportedBaudRate._115200;
+        isBaudRateQueried = false;
     }
 
     /**
      * Sets the pin debugging logging messages.
      * <p>The OneSheeldSdk.setDebugging() should be enabled first</p>
      * <p>This includes huge messages if the 1Sheeld pins are floating.</p>
+     *
      * @param isPinDebuggingEnabled the required state of the flag
      */
     public void setPinsDebugging(boolean isPinDebuggingEnabled) {
@@ -237,6 +305,7 @@ public class OneSheeldDevice {
      * Add a connection callback.
      *
      * @param connectionCallback the connection callback
+     * @see OneSheeldConnectionCallback
      */
     public void addConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && !connectionCallbacks.contains(connectionCallback))
@@ -247,6 +316,7 @@ public class OneSheeldDevice {
      * Add a data callback.
      *
      * @param dataCallback the data callback
+     * @see OneSheeldDataCallback
      */
     public void addDataCallback(OneSheeldDataCallback dataCallback) {
         if (dataCallback != null && !dataCallbacks.contains(dataCallback))
@@ -257,6 +327,7 @@ public class OneSheeldDevice {
      * Add a version query callback.
      *
      * @param versionQueryCallback the version query callback
+     * @see OneSheeldVersionQueryCallback
      */
     public void addVersionQueryCallback(OneSheeldVersionQueryCallback versionQueryCallback) {
         if (versionQueryCallback != null && !versionQueryCallbacks.contains(versionQueryCallback))
@@ -267,6 +338,7 @@ public class OneSheeldDevice {
      * Add an error callback.
      *
      * @param errorCallback the error callback
+     * @see OneSheeldErrorCallback
      */
     public void addErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && !errorCallbacks.contains(errorCallback))
@@ -274,9 +346,43 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Add a testing callback.
+     *
+     * @param testingCallback the testing callback
+     * @see OneSheeldTestingCallback
+     */
+    public void addTestingCallback(OneSheeldTestingCallback testingCallback) {
+        if (testingCallback != null && !testingCallbacks.contains(testingCallback))
+            testingCallbacks.add(testingCallback);
+    }
+
+    /**
+     * Add a renaming callback.
+     *
+     * @param renamingCallback the renaming callback
+     * @see OneSheeldRenamingCallback
+     */
+    public void addRenamingCallback(OneSheeldRenamingCallback renamingCallback) {
+        if (renamingCallback != null && !renamingCallbacks.contains(renamingCallback))
+            renamingCallbacks.add(renamingCallback);
+    }
+
+    /**
+     * Add a baud rate query callback.
+     *
+     * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldBaudRateQueryCallback
+     */
+    public void addBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
+        if (baudRateQueryCallback != null && !baudRateQueryCallbacks.contains(baudRateQueryCallback))
+            baudRateQueryCallbacks.add(baudRateQueryCallback);
+    }
+
+    /**
      * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
+     * @see OneSheeldConnectionCallback
      */
     public void removeConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && connectionCallbacks.contains(connectionCallback))
@@ -287,6 +393,7 @@ public class OneSheeldDevice {
      * Remove an error callback.
      *
      * @param errorCallback the error callback
+     * @see OneSheeldErrorCallback
      */
     public void removeErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && errorCallbacks.contains(errorCallback))
@@ -294,9 +401,32 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Remove a renaming callback.
+     *
+     * @param renamingCallback the renaming callback
+     * @see OneSheeldRenamingCallback
+     */
+    public void removeRenamingCallback(OneSheeldRenamingCallback renamingCallback) {
+        if (renamingCallback != null && renamingCallbacks.contains(renamingCallback))
+            renamingCallbacks.remove(renamingCallback);
+    }
+
+    /**
+     * Remove a testing callback.
+     *
+     * @param testingCallback the testing callback
+     * @see OneSheeldTestingCallback
+     */
+    public void removeTestingCallback(OneSheeldTestingCallback testingCallback) {
+        if (testingCallback != null && testingCallbacks.contains(testingCallback))
+            testingCallbacks.remove(testingCallback);
+    }
+
+    /**
      * Remove a data callback.
      *
      * @param dataCallback the data callback
+     * @see OneSheeldDataCallback
      */
     public void removeDataCallback(OneSheeldDataCallback dataCallback) {
         if (dataCallback != null && dataCallbacks.contains(dataCallback))
@@ -307,6 +437,7 @@ public class OneSheeldDevice {
      * Remove a version query callback.
      *
      * @param versionQueryCallback the version query callback
+     * @see OneSheeldVersionQueryCallback
      */
     public void removeVersionQueryCallback(OneSheeldVersionQueryCallback versionQueryCallback) {
         if (versionQueryCallback != null && versionQueryCallbacks.contains(versionQueryCallback))
@@ -314,19 +445,106 @@ public class OneSheeldDevice {
     }
 
     /**
+     * Remove a baud rate query callback.
+     *
+     * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldBaudRateQueryCallback
+     */
+    public void removeBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
+        if (baudRateQueryCallback != null && baudRateQueryCallbacks.contains(baudRateQueryCallback))
+            baudRateQueryCallbacks.remove(baudRateQueryCallback);
+    }
+
+    /**
      * Add all of the device callbacks in one method call.
      *
-     * @param connectionCallback   the connection callback
-     * @param dataCallback         the data callback
-     * @param versionQueryCallback the version query callback
-     * @param errorCallback        the error callback
+     * @param connectionCallback    the connection callback
+     * @param dataCallback          the data callback
+     * @param versionQueryCallback  the version query callback
+     * @param errorCallback         the error callback
+     * @param testingCallback       the testing callback
+     * @param renamingCallback      the renaming callback
+     * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldConnectionCallback
+     * @see OneSheeldDataCallback
+     * @see OneSheeldVersionQueryCallback
+     * @see OneSheeldTestingCallback
+     * @see OneSheeldRenamingCallback
+     * @see OneSheeldBaudRateQueryCallback
      */
-    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback) {
+    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldTestingCallback testingCallback, OneSheeldRenamingCallback renamingCallback, OneSheeldBaudRateQueryCallback baudRateQueryCallback, OneSheeldErrorCallback errorCallback) {
         addConnectionCallback(connectionCallback);
-        addErrorCallback(errorCallback);
         addDataCallback(dataCallback);
         addVersionQueryCallback(versionQueryCallback);
+        addTestingCallback(testingCallback);
+        addRenamingCallback(renamingCallback);
+        addBaudRateQueryCallback(baudRateQueryCallback);
+        addErrorCallback(errorCallback);
     }
+
+    /**
+     * Removes all connection, data, version query, board testing, renaming, and baud rate query callbacks.
+     */
+    public void removeAllCallbacks() {
+        removeAllConnectionCallbacks();
+        removeAllDataCallbacks();
+        removeAllVersionQueryCallbacks();
+        removeAllTestingCallbacks();
+        removeAllRenamingCallbacks();
+        removeAllBaudRateQueryCallbacks();
+        removeAllErrorCallbacks();
+
+    }
+
+    /**
+     * Removes all connection callbacks.
+     */
+    public void removeAllConnectionCallbacks() {
+        connectionCallbacks.clear();
+    }
+
+    /**
+     * Removes all data callbacks.
+     */
+    public void removeAllDataCallbacks() {
+        dataCallbacks.clear();
+    }
+
+    /**
+     * Removes all error callbacks.
+     */
+    public void removeAllErrorCallbacks() {
+        errorCallbacks.clear();
+    }
+
+    /**
+     * Removes all version query callbacks.
+     */
+    public void removeAllVersionQueryCallbacks() {
+        versionQueryCallbacks.clear();
+    }
+
+    /**
+     * Removes all board testing callbacks.
+     */
+    public void removeAllTestingCallbacks() {
+        testingCallbacks.clear();
+    }
+
+    /**
+     * Removes all board renaming callbacks.
+     */
+    public void removeAllRenamingCallbacks() {
+        renamingCallbacks.clear();
+    }
+
+    /**
+     * Removes all baud rate query callbacks.
+     */
+    public void removeAllBaudRateQueryCallbacks() {
+        baudRateQueryCallbacks.clear();
+    }
+
 
     private void clearAllBuffers() {
         bluetoothBuffer.clear();
@@ -394,10 +612,10 @@ public class OneSheeldDevice {
         this.isPaired = isPaired;
     }
 
-    synchronized void connectUsing(BluetoothSocket socket) {
+    synchronized void connectUsing(OneSheeldConnection connection) {
         try {
             closeConnection();
-            connectedThread = new ConnectedThread(socket);
+            connectedThread = new ConnectedThread(connection);
             connectedThread.start();
         } catch (IllegalArgumentException e) {
             return;
@@ -405,28 +623,28 @@ public class OneSheeldDevice {
     }
 
     private void onConnect() {
-        manager.onConnect(this);
+        manager.onConnect(OneSheeldDevice.this);
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onConnect(this);
+            connectionCallback.onConnect(OneSheeldDevice.this);
         }
     }
 
     private void onDisconnect() {
-        manager.onDisconnect(this);
+        manager.onDisconnect(OneSheeldDevice.this);
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onDisconnect(this);
+            connectionCallback.onDisconnect(OneSheeldDevice.this);
         }
     }
 
     void onError(OneSheeldError error) {
         for (OneSheeldErrorCallback errorCallback : errorCallbacks) {
-            errorCallback.onError(this, error);
+            errorCallback.onError(OneSheeldDevice.this, error);
         }
     }
 
     void onConnectionRetry(int retryCount) {
         for (OneSheeldConnectionCallback connectionCallback : connectionCallbacks) {
-            connectionCallback.onConnectionRetry(this, retryCount);
+            connectionCallback.onConnectionRetry(OneSheeldDevice.this, retryCount);
         }
     }
 
@@ -470,7 +688,7 @@ public class OneSheeldDevice {
     }
 
     private void notifyHardwareOfConnection() {
-        Log.d("Device " + this.name + ": Notifying the board with connection.");
+        Log.i("Device " + this.name + ": Notifying the board with connection.");
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED));
     }
 
@@ -543,6 +761,7 @@ public class OneSheeldDevice {
                     if (sent) try {
                         Thread.sleep(200);
                     } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -601,7 +820,7 @@ public class OneSheeldDevice {
         if (frame == null) return;
         byte[] frameBytes = frame.getAllFrameAsBytes();
         sendData(frameBytes);
-        Log.d("Device " + this.name + ": Frame sent, values: " + frame + ".");
+        Log.i("Device " + this.name + ": Frame sent, values: " + frame + ".");
     }
 
     private void respondToIsAlive() {
@@ -625,7 +844,7 @@ public class OneSheeldDevice {
             return;
         }
         sendData(data);
-        Log.d("Device " + this.name + ": Serial data sent, values: " + ArrayUtils.toHexString(data) + ".");
+        Log.i("Device " + this.name + ": Serial data sent, values: " + ArrayUtils.toHexString(data) + ".");
     }
 
     private void sendData(byte[] data) {
@@ -644,7 +863,7 @@ public class OneSheeldDevice {
     }
 
     private void enableReporting() {
-        Log.d("Device " + this.name + ": Enable digital pins reporting.");
+        Log.i("Device " + this.name + ": Enable digital pins reporting.");
         synchronized (sendingDataLock) {
             for (byte i = 0; i < 3; i++) {
                 write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
@@ -653,14 +872,87 @@ public class OneSheeldDevice {
     }
 
     private void queryInputPinsValues() {
-        Log.d("Device " + this.name + ": Query the current status of the pins.");
+        Log.i("Device " + this.name + ": Query the current status of the pins.");
         synchronized (sendingDataLock) {
             sysex(REPORT_INPUT_PINS, new byte[]{});
         }
     }
 
+    /**
+     * Rename the board. Note: if the new name does not have "1Sheeld" in its name, it will not be visible in any future scans by the SDK.
+     *
+     * @param name the new name
+     * @return true if the renaming request initiated successfully.
+     * @throws NullPointerException if the passed name is null or zero length
+     * @see OneSheeldRenamingCallback
+     */
+    public boolean rename(String name) {
+        if (name == null || name.length() <= 0)
+            throw new NullPointerException("The passed name is invalid, have you checked its validity?");
+        else if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return false;
+        } else if (hasRenamingStarted) {
+            Log.i("Device " + this.name + ": Device is in the middle of another renaming request.");
+            return false;
+        }
+        renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+        hasRenamingStarted = true;
+        return sendRenamingRequest(name);
+    }
+
+    private boolean sendRenamingRequest(String name) {
+        if (name == null || name.length() <= 0) return false;
+        if (isTypePlus()) name = (name.length() > 11) ? name.substring(0, 11) : name;
+        else name = (name.length() > 14) ? name.substring(0, 14) : name;
+        Log.i("Device " + this.name + ": Trying to rename the device to \"" + name + "\".");
+        pendingName = name;
+        synchronized (sendingDataLock) {
+            sysex(BOARD_RENAMING, name.getBytes(Charset.forName("US-ASCII")));
+        }
+        initRenamingBoardTimeOut();
+        return true;
+    }
+
+    /**
+     * Test the board, and make sure the firmware and library are working correctly.
+     *
+     * @return true if the test sequence initiated successfully.
+     * @see OneSheeldTestingCallback
+     */
+    public boolean test() {
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return false;
+        } else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
+            Log.i("Device " + this.name + ": device is in the middle of another test.");
+            return false;
+        }
+        Log.i("Device " + this.name + ": Testing the device, both firmware and library.");
+        String currentMillis = String.valueOf(System.currentTimeMillis());
+        byte[] bytes = currentMillis.getBytes(Charset.forName("US-ASCII"));
+        int correctAnswer = 0;
+        for (byte byteValue : bytes) {
+            correctAnswer += (byteValue & 0xFF);
+
+        }
+        correctTestingChallengeAnswer = (byte) (correctAnswer % 256);
+        hasFirmwareTestStarted = true;
+        hasLibraryTestStarted = true;
+        ShieldFrame testingFrame = new ShieldFrame(CONFIGURATION_SHIELD_ID, LIBRARY_TESTING_CHALLENGE_REQUEST);
+        testingFrame.addArgument("Are you ok?");
+        testingFrame.addArgument(bytes);
+        synchronized (sendingDataLock) {
+            sysex(BOARD_TESTING, bytes);
+            sendShieldFrame(testingFrame);
+        }
+        initFirmwareTestingTimeOut();
+        initLibraryTestingTimeOut();
+        return true;
+    }
+
     private void setAllPinsAsInput() {
-        Log.d("Device " + this.name + ": Set all digital pins as input.");
+        Log.i("Device " + this.name + ": Set all digital pins as input.");
         for (int i = 0; i < 20; i++) {
             pinMode(i, INPUT);
         }
@@ -679,7 +971,7 @@ public class OneSheeldDevice {
             return false;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Digital read from pin " + pin + ".");
+            Log.i("Device " + this.name + ": Digital read from pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         return getDigitalPinStatus(pin);
@@ -701,7 +993,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
+            Log.i("Device " + this.name + ": Change mode of pin " + pin + " to " + mode + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, mode};
@@ -722,7 +1014,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
+            Log.i("Device " + this.name + ": Digital write " + (value ? "High" : "Low") + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte portNumber = (byte) ((pin >> 3) & 0x0F);
@@ -751,7 +1043,7 @@ public class OneSheeldDevice {
             return;
         }
         if (isPinDebuggingEnabled)
-            Log.d("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
+            Log.i("Device " + this.name + ": Analog write " + value + " to pin " + pin + ".");
         if (pin >= 20 || pin < 0)
             throw new IncorrectPinException("The specified pin number is incorrect, are you sure you specified it correctly?");
         byte[] writeData = {SET_PIN_MODE, (byte) pin, PWM,
@@ -765,7 +1057,7 @@ public class OneSheeldDevice {
     private void setDigitalInputs(int portNumber, int portData) {
         int portDifference = digitalInputData[portNumber] ^ portData;
         digitalInputData[portNumber] = portData;
-        ArrayList<Integer> differentPinNumbers = new ArrayList();
+        ArrayList<Integer> differentPinNumbers = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
             if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
         }
@@ -773,35 +1065,39 @@ public class OneSheeldDevice {
         for (int pinNumber : differentPinNumbers) {
             int actualPinNumber = (portNumber << 3) + pinNumber;
             if (isPinDebuggingEnabled)
-                Log.d("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
+                Log.i("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
             for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                oneSheeldDataCallback.onDigitalPinStatusChange(actualPinNumber, getDigitalPinStatus(actualPinNumber));
+                oneSheeldDataCallback.onDigitalPinStatusChange(OneSheeldDevice.this, actualPinNumber, getDigitalPinStatus(actualPinNumber));
             }
         }
     }
 
     /**
      * Query the firmware version.
+     *
+     * @see OneSheeldVersionQueryCallback
      */
     public void queryFirmwareVersion() {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Query firmware version.");
+        Log.i("Device " + this.name + ": Query firmware version.");
         isFirmwareVersionQueried = false;
         write(REPORT_VERSION);
     }
 
     /**
      * Query the library version.
+     *
+     * @see OneSheeldVersionQueryCallback
      */
     public void queryLibraryVersion() {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
         }
-        Log.d("Device " + this.name + ": Query library version.");
+        Log.i("Device " + this.name + ": Query library version.");
         isLibraryVersionQueried = false;
         sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION));
     }
@@ -823,6 +1119,24 @@ public class OneSheeldDevice {
      */
     public boolean hasRespondedToLibraryVersionQuery() {
         return isLibraryVersionQueried;
+    }
+
+    /**
+     * Checks whether the device responded to the current baud rate query.
+     *
+     * @return the boolean
+     */
+    public boolean hasRespondedToBaudRateQuery() {
+        return isBaudRateQueried;
+    }
+
+    /**
+     * gets the current baud rate.
+     *
+     * @return the current baud rate
+     */
+    public SupportedBaudRate getCurrentBaudRate() {
+        return currentBaudRate;
     }
 
     private void write(byte[] writeData) {
@@ -858,7 +1172,55 @@ public class OneSheeldDevice {
         queryFirmwareVersion();
         sendUnMuteFrame();
         notifyHardwareOfConnection();
+        queryBaudrate();
         queryLibraryVersion();
+    }
+
+    /**
+     * Query the current baud rate of the device.
+     *
+     * @see OneSheeldBaudRateQueryCallback
+     */
+    public void queryBaudrate() {
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        isBaudRateQueried = false;
+        sendBaudRateQueryFrame();
+        Log.i("Device " + this.name + ": Baud rate queried.");
+    }
+
+    private void sendBaudRateQueryFrame() {
+        synchronized (sendingDataLock) {
+            sysex(QUERY_BAUD_RATE, new byte[]{});
+        }
+    }
+
+    /**
+     * Change the baud rate of the device.
+     *
+     * @param baudRate a supported baud rate.
+     * @throws NullPointerException if the passed baud rate is null
+     */
+    public void setBaudrate(SupportedBaudRate baudRate) {
+        if (baudRate == null)
+            throw new NullPointerException("The passed baud rate is null, have you checked its validity?");
+        if (!isConnected()) {
+            onError(OneSheeldError.DEVICE_NOT_CONNECTED);
+            return;
+        }
+        sendBaudRateSetFrame(baudRate.getFrameValue());
+        currentBaudRate = baudRate;
+        Log.i("Device " + this.name + ": Changed communications baud rate to " + baudRate.getBaudRate() + ".");
+    }
+
+    private void sendBaudRateSetFrame(byte baudRate) {
+        byte randomVal = (byte) (Math.random() * 255);
+        byte complement = (byte) (255 - randomVal & 0xFF);
+        synchronized (sendingDataLock) {
+            sysex(SET_BAUD_RATE, new byte[]{baudRate, randomVal, complement});
+        }
     }
 
     /**
@@ -870,7 +1232,7 @@ public class OneSheeldDevice {
             return;
         }
         sendMuteFrame();
-        Log.d("Device " + this.name + ": Communications muted.");
+        Log.i("Device " + this.name + ": Communications muted.");
         isMuted = true;
     }
 
@@ -895,7 +1257,7 @@ public class OneSheeldDevice {
             return;
         }
         sendUnMuteFrame();
-        Log.d("Device " + this.name + ": Communications unmuted.");
+        Log.i("Device " + this.name + ": Communications unmuted.");
         isMuted = false;
     }
 
@@ -925,20 +1287,26 @@ public class OneSheeldDevice {
 
     private void onLibraryVersionQueryResponse(int version) {
         for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
-            versionQueryCallback.onLibraryVersionQueryResponse(version);
+            versionQueryCallback.onLibraryVersionQueryResponse(OneSheeldDevice.this, version);
         }
     }
 
     private void onFirmwareVersionQueryResponse(int majorVersion, int minorVersion) {
         for (OneSheeldVersionQueryCallback versionQueryCallback : versionQueryCallbacks) {
-            versionQueryCallback.onFirmwareVersionQueryResponse(new FirmwareVersion(majorVersion, minorVersion));
+            versionQueryCallback.onFirmwareVersionQueryResponse(OneSheeldDevice.this, new FirmwareVersion(majorVersion, minorVersion));
+        }
+    }
+
+    private void onBaudRateQueryResponse(SupportedBaudRate supportedBaudRate) {
+        for (OneSheeldBaudRateQueryCallback baudRateQueryCallback : baudRateQueryCallbacks) {
+            baudRateQueryCallback.onBaudRateQueryResponse(OneSheeldDevice.this, supportedBaudRate);
         }
     }
 
     private void setVersion(int majorVersion, int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
-        Log.d("Device " + this.name + ": Device replied with firmware version, major: " + majorVersion + ", minor:" + minorVersion + ".");
+        Log.i("Device " + this.name + ": Device replied with firmware version, major: " + majorVersion + ", minor:" + minorVersion + ".");
         onFirmwareVersionQueryResponse(majorVersion, minorVersion);
     }
 
@@ -983,7 +1351,7 @@ public class OneSheeldDevice {
                             for (byte b : fixedSysexData) {
                                 serialBuffer.add(b);
                                 for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                                    oneSheeldDataCallback.onSerialDataReceive(b & 0xFF);
+                                    oneSheeldDataCallback.onSerialDataReceive(OneSheeldDevice.this, b & 0xFF);
                                 }
                             }
                         } else if (sysexCommand == BLUETOOTH_RESET) {
@@ -992,10 +1360,69 @@ public class OneSheeldDevice {
                             synchronized (sendingDataLock) {
                                 sysex(BLUETOOTH_RESET, new byte[]{0x01, randomVal, complement});
                             }
-                            Log.d("Device " + this.name + ": Device requested Bluetooth reset.");
+                            Log.i("Device " + this.name + ": Device requested Bluetooth reset.");
                             closeConnection();
                         } else if (sysexCommand == IS_ALIVE) {
                             respondToIsAlive();
+                        } else if (sysexCommand == BOARD_TESTING) {
+                            stopFirmwareTestingTimeOut();
+                            hasFirmwareTestStarted = false;
+                            boolean isPassed = fixedSysexData.length == 1 && fixedSysexData[0] == correctTestingChallengeAnswer;
+                            if (isPassed)
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing succeeded.");
+                            else
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing failed.");
+                            if (isConnected()) {
+                                for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                                    oneSheeldTestingCallback.onFirmwareTestResult(OneSheeldDevice.this, isPassed);
+                            }
+                        } else if (sysexCommand == BOARD_RENAMING) {
+                            Log.i("Device " + this.name + ": Device received the renaming request successfully, it should be renamed to \"" + pendingName + "\" in a couple of seconds.");
+                            this.name = pendingName;
+                            hasRenamingStarted = false;
+                            stopRenamingBoardTimeOut();
+                            if (isConnected()) {
+                                for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
+                                    renamingCallback.onRenamingRequestReceivedSuccessfully(OneSheeldDevice.this);
+                                }
+                            }
+                            closeConnection();
+                        } else if (sysexCommand == QUERY_BAUD_RATE && fixedSysexData.length == 1) {
+                            boolean isSupported = true;
+                            switch (fixedSysexData[0]) {
+                                case 0x01:
+                                    currentBaudRate = SupportedBaudRate._9600;
+                                    break;
+                                case 0x02:
+                                    currentBaudRate = SupportedBaudRate._14400;
+                                    break;
+                                case 0x03:
+                                    currentBaudRate = SupportedBaudRate._19200;
+                                    break;
+                                case 0x04:
+                                    currentBaudRate = SupportedBaudRate._28800;
+                                    break;
+                                case 0x05:
+                                    currentBaudRate = SupportedBaudRate._38400;
+                                    break;
+                                case 0x06:
+                                    currentBaudRate = SupportedBaudRate._57600;
+                                    break;
+                                case 0x07:
+                                    currentBaudRate = SupportedBaudRate._115200;
+                                    break;
+                                default:
+                                    isSupported = false;
+                                    break;
+                            }
+                            isBaudRateQueried = true;
+                            if (isSupported) {
+                                Log.i("Device " + this.name + ": Device responded with baud rate: " + currentBaudRate.getBaudRate() + ".");
+                                onBaudRateQueryResponse(currentBaudRate);
+                            } else {
+                                Log.i("Device " + this.name + ": Device responded with an unsupported baud rate.");
+                                onBaudRateQueryResponse(null);
+                            }
                         } else {
                             onSysex(sysexCommand, sysexData);
                         }
@@ -1048,18 +1475,22 @@ public class OneSheeldDevice {
 
     /**
      * Disconnect the device.
+     *
+     * @see OneSheeldConnectionCallback
      */
     public void disconnect() {
-        Log.d("Device " + this.name + ": Disconnection request received.");
+        Log.i("Device " + this.name + ": Disconnection request received.");
         closeConnection();
     }
 
     /**
      * Connect to the device.
+     *
+     * @see OneSheeldConnectionCallback
      */
     public void connect() {
-        Log.d("Device " + this.name + ": Delegate the connection request to the manager.");
-        manager.connect(this);
+        Log.i("Device " + this.name + ": Delegate the connection request to the manager.");
+        manager.connect(OneSheeldDevice.this);
     }
 
     /**
@@ -1074,133 +1505,175 @@ public class OneSheeldDevice {
     }
 
     private synchronized void closeConnection() {
-        stopBuffersThreads();
-        if (connectedThread != null) {
-            connectedThread.cancel();
-            connectedThread.interrupt();
-            connectedThread = null;
-        }
         boolean isConnected;
         synchronized (isConnectedLock) {
             isConnected = this.isConnected;
             this.isConnected = false;
         }
-        if (callbacksTimeout != null) callbacksTimeout.stopTimer();
-        if (exitingCallbacksThread != null && exitingCallbacksThread.isAlive())
-            exitingCallbacksThread.interrupt();
-        if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
-            enteringCallbacksThread.interrupt();
-        queuedFrames.clear();
-        synchronized (arduinoCallbacksLock) {
-            isInACallback = false;
-        }
         if (isConnected) {
-            Log.d("Device " + this.name + ": Device disconnected.");
+            stopBuffersThreads();
+            if (connectedThread != null) {
+                connectedThread.interrupt();
+                connectedThread.cancel();
+                connectedThread = null;
+            }
+            if (callbacksTimeout != null) callbacksTimeout.stopTimer();
+            if (exitingCallbacksThread != null && exitingCallbacksThread.isAlive())
+                exitingCallbacksThread.interrupt();
+            if (enteringCallbacksThread != null && enteringCallbacksThread.isAlive())
+                enteringCallbacksThread.interrupt();
+            clearAllBuffers();
+            queuedFrames.clear();
+            synchronized (arduinoCallbacksLock) {
+                isInACallback = false;
+            }
+
+            Log.i("Device " + this.name + ": Device disconnected.");
+            stopRenamingBoardTimeOut();
+            stopFirmwareTestingTimeOut();
+            stopLibraryTestingTimeOut();
             onDisconnect();
         }
     }
 
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
-        Handler writeHandler;
-        Looper writeHandlerLooper;
-        Thread LooperThread;
+    /**
+     * Checks whether the device type is plus or classic.
+     *
+     * @return the boolean
+     */
+    public boolean isTypePlus() {
+        return Build.VERSION.SDK_INT >= 18 && (isTypePlus || bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE);
+    }
 
-        ConnectedThread(BluetoothSocket socket) {
-            mmSocket = socket;
-            InputStream tmpIn = null;
-            OutputStream tmpOut = null;
-            try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
-            } catch (IOException e) {
+    private void stopRenamingBoardTimeOut() {
+        if (renamingBoardTimeout != null)
+            renamingBoardTimeout.stopTimer();
+        hasRenamingStarted = false;
+    }
+
+    private void initRenamingBoardTimeOut() {
+        stopRenamingBoardTimeOut();
+        renamingBoardTimeout = new TimeOut(2000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                if (renamingRetries > 0 && isConnected()) {
+                    renamingRetries--;
+                    Log.i("Device " + OneSheeldDevice.this.name + ": Board renaming time-outed, retrying again.");
+                    for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
+                        renamingCallback.onRenamingAttemptTimeOut(OneSheeldDevice.this);
+                    }
+                    sendRenamingRequest(pendingName);
+                } else {
+                    renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
+                    hasRenamingStarted = false;
+                    Log.i("Device " + OneSheeldDevice.this.name + ": All attempts to rename the board time-outed. Aborting.");
+                    if (isConnected()) {
+                        for (OneSheeldRenamingCallback renamingCallback : renamingCallbacks) {
+                            renamingCallback.onAllRenamingAttemptsTimeOut(OneSheeldDevice.this);
+                        }
+                    }
+                }
             }
-            mmInStream = tmpIn;
-            mmOutStream = tmpOut;
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
+    }
+
+    private void stopFirmwareTestingTimeOut() {
+        if (firmwareTestingTimeout != null)
+            firmwareTestingTimeout.stopTimer();
+        hasFirmwareTestStarted = false;
+    }
+
+    private void initFirmwareTestingTimeOut() {
+        stopFirmwareTestingTimeOut();
+        firmwareTestingTimeout = new TimeOut(4000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                hasFirmwareTestStarted = false;
+                Log.i("Device " + OneSheeldDevice.this.name + ": Firmware testing time-outed.");
+                if (isConnected()) {
+                    for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                        oneSheeldTestingCallback.onFirmwareTestTimeOut(OneSheeldDevice.this);
+                }
+            }
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
+    }
+
+    private void stopLibraryTestingTimeOut() {
+        if (libraryTestingTimeout != null)
+            libraryTestingTimeout.stopTimer();
+        hasLibraryTestStarted = false;
+    }
+
+    private void initLibraryTestingTimeOut() {
+        stopLibraryTestingTimeOut();
+        libraryTestingTimeout = new TimeOut(4000, 100, new TimeOut.TimeOutCallback() {
+            @Override
+            public void onTimeOut() {
+                hasLibraryTestStarted = false;
+                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing time-outed.");
+                if (isConnected()) {
+                    for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                        oneSheeldTestingCallback.onLibraryTestTimeOut(OneSheeldDevice.this);
+                }
+            }
+
+            @Override
+            public void onTick(long milliSecondsLeft) {
+
+            }
+        });
+    }
+
+    private class ConnectedThread extends Thread {
+        private final OneSheeldConnection connection;
+
+        ConnectedThread(OneSheeldConnection connection) {
+            this.connection = connection;
+            if (connection != null)
+                connection.setConnectionCloseCallback(new BluetoothConnectionCloseCallback() {
+                    @Override
+                    public void onConnectionClose() {
+                        closeConnection();
+                    }
+                });
             setName("OneSheeldConnectedReadThread: " + OneSheeldDevice.this.getName());
         }
 
         @Override
         public void run() {
-            if (mmSocket == null) return;
-            Log.d("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
-            LooperThread = new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    Looper.prepare();
-                    writeHandlerLooper = Looper.myLooper();
-                    writeHandler = new Handler();
-                    Looper.loop();
-                }
-            });
-            LooperThread.setName("OneSheeldConnectedWriteThread: " + OneSheeldDevice.this.getName());
-            LooperThread.start();
-            while (!LooperThread.isAlive()) ;
+            if (connection == null) return;
+            Log.i("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
             synchronized (isConnectedLock) {
                 isConnected = true;
             }
-            byte[] buffer = new byte[MAX_BUFFER_SIZE];
-            int bufferLength;
-            Log.d("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
+            Log.i("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
             initFirmware();
-            Log.d("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
+            Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
             onConnect();
             while (!this.isInterrupted()) {
-                try {
-                    bufferLength = mmInStream.read(buffer, 0, buffer.length);
-                    bufferLength = bufferLength >= buffer.length ? buffer.length : bufferLength;
-                    for (int i = 0; i < bufferLength; i++) {
-                        bluetoothBuffer.add(buffer[i]);
-                    }
-                } catch (IOException e) {
-                    if (writeHandlerLooper != null)
-                        writeHandlerLooper.quit();
-                    closeConnection();
-                    break;
+                byte[] readBytes = connection.read();
+                for (byte readByte : readBytes) {
+                    bluetoothBuffer.add(readByte);
                 }
             }
         }
 
         private synchronized void write(final byte[] buffer) {
-            if (writeHandler == null)
-                return;
-            writeHandler.post(new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        mmOutStream.write(buffer);
-                    } catch (IOException e) {
-                        if (writeHandlerLooper != null)
-                            writeHandlerLooper.quit();
-                        closeConnection();
-                    }
-                }
-            });
+            if (connection != null) connection.write(buffer);
         }
 
-        synchronized void cancel() {
-            if (writeHandlerLooper != null) {
-                writeHandlerLooper.quit();
-            }
-            if (mmInStream != null)
-                try {
-                    mmInStream.close();
-                } catch (IOException ignored) {
-                }
-            if (mmOutStream != null)
-                try {
-                    mmOutStream.close();
-                } catch (IOException e) {
-                }
-            if (mmSocket != null)
-                try {
-                    mmSocket.close();
-                } catch (IOException ignored) {
-                }
+        private synchronized void cancel() {
+            if (connection != null) connection.close();
         }
     }
 
@@ -1223,6 +1696,7 @@ public class OneSheeldDevice {
                     input = readByteFromBluetoothBuffer();
                     processInput((byte) input);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     return;
                 }
             }
@@ -1248,31 +1722,31 @@ public class OneSheeldDevice {
                         ;
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
-                    ShieldFrameTimeout = new TimeOut(1000);
+                    ShieldFrameTimeout = new TimeOut(2000);
                     int tempArduinoLibVersion = readByteFromSerialBuffer();
                     byte shieldId = readByteFromSerialBuffer();
                     byte instanceId = readByteFromSerialBuffer();
                     byte functionId = readByteFromSerialBuffer();
-                    ShieldFrame frame = new ShieldFrame(shieldId,functionId);
+                    ShieldFrame frame = new ShieldFrame(shieldId, functionId);
                     int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
                     int argumentsNumberVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                     if (argumentsNumber != argumentsNumberVerification) {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
                         serialBuffer.clear();
                         continue;
                     }
-                    boolean continueRequested=false;
+                    boolean continueRequested = false;
                     for (int i = 0; i < argumentsNumber; i++) {
                         int length = readByteFromSerialBuffer() & 0xFF;
                         int lengthVerification = (255 - (readByteFromSerialBuffer() & 0xFF));
                         if (length != lengthVerification || length <= 0) {
-                            Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                            Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
                             serialBuffer.clear();
-                            continueRequested=true;
+                            continueRequested = true;
                             break;
                         }
                         byte[] data = new byte[length];
@@ -1281,9 +1755,9 @@ public class OneSheeldDevice {
                         }
                         frame.addArgument(data);
                     }
-                    if(continueRequested)continue;
+                    if (continueRequested) continue;
                     if ((readByteFromSerialBuffer()) != ShieldFrame.END_OF_FRAME) {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
                         serialBuffer.clear();
@@ -1294,7 +1768,7 @@ public class OneSheeldDevice {
                     if (arduinoLibraryVersion != tempArduinoLibVersion) {
                         arduinoLibraryVersion = tempArduinoLibVersion;
                         isLibraryVersionQueried = true;
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Device replied with library version: " + arduinoLibraryVersion + ".");
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Device replied with library version: " + arduinoLibraryVersion + ".");
                         onLibraryVersionQueryResponse(arduinoLibraryVersion);
                     }
 
@@ -1306,20 +1780,43 @@ public class OneSheeldDevice {
                             callbackEntered();
                         } else if (functionId == IS_CALLBACK_EXITED) {
                             callbackExited();
+                        } else if (functionId == LIBRARY_TESTING_CHALLENGE_RESPONSE) {
+                            hasLibraryTestStarted = false;
+                            boolean isTestResultCorrect = false;
+                            try {
+                                if (frame.getArguments().size() == 2) {
+                                    if (frame.getArgumentAsString(0).equals("Yup, I'm feeling great!")) {
+                                        if (frame.getArgument(1).length == 1 && frame.getArgument(1)[0] == correctTestingChallengeAnswer) {
+                                            isTestResultCorrect = true;
+                                        }
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                            }
+                            if (isTestResultCorrect)
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing succeeded.");
+                            else
+                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
+                            stopLibraryTestingTimeOut();
+                            if (isConnected()) {
+                                for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                                    oneSheeldTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
+                            }
                         }
                     } else {
-                        Log.d("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
                         for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                            oneSheeldDataCallback.onShieldFrameReceive(frame);
+                            oneSheeldDataCallback.onShieldFrameReceive(OneSheeldDevice.this, frame);
                             if (OneSheeldSdk.getKnownShields().contains(shieldId) &&
                                     OneSheeldSdk.getKnownShields().getKnownShield(shieldId).getKnownFunctions().contains(KnownFunction.getFunctionWithId(functionId)))
-                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
+                                oneSheeldDataCallback.onKnownShieldFrameReceive(OneSheeldDevice.this, OneSheeldSdk.getKnownShields().getKnownShield(shieldId), frame);
                         }
                     }
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     return;
                 } catch (ShieldFrameNotComplete e) {
-                    Log.d("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");
+                    Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 2 seconds, canceling what we've read so far.");
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = null;
@@ -1332,3 +1829,4 @@ public class OneSheeldDevice {
     private class ShieldFrameNotComplete extends Exception {
     }
 }
+

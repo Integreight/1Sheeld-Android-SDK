@@ -30,6 +30,7 @@ public class ShieldFrame {
     static final byte END_OF_FRAME = (byte) 0x00;
 
     private byte shieldId;
+    private byte verificationByte;
     private byte functionId;
     private ArrayList<byte[]> arguments;
 
@@ -42,6 +43,7 @@ public class ShieldFrame {
      */
     public ShieldFrame(byte shieldId, byte functionId) {
         this.shieldId = shieldId;
+        this.verificationByte = getNewVerificationByte();
         this.functionId = functionId;
         arguments = new ArrayList<>();
     }
@@ -53,6 +55,7 @@ public class ShieldFrame {
      */
     public ShieldFrame(byte shieldId) {
         this.shieldId = shieldId;
+        this.verificationByte = getNewVerificationByte();
         this.functionId = 0;
         arguments = new ArrayList<>();
     }
@@ -230,7 +233,7 @@ public class ShieldFrame {
         if (data == null)
             throw new NullPointerException("The passed string is null, have you checked its validity?");
         String temp = (data.length() > 255) ? data.substring(0, 255) : data;
-        arguments.add(temp.getBytes(Charset.forName("UTF-8")));
+        arguments.add(temp.getBytes(Charset.forName("US-ASCII")));
     }
 
     /**
@@ -239,6 +242,13 @@ public class ShieldFrame {
     @Override
     public String toString() {
         return ArrayUtils.toHexString(getAllFrameAsBytes());
+    }
+
+
+    private byte getNewVerificationByte() {
+        int randomValue = (int) Math.round((Math.random() * 15));
+        randomValue = randomValue | ((15 - randomValue) << 4);
+        return (byte) randomValue;
     }
 
     /**
@@ -251,13 +261,11 @@ public class ShieldFrame {
         for (byte[] argument : arguments) {
             totalSizeOfArguments += argument.length;
         }
-        int randomValue= (int) Math.round((Math.random()*15));
-        randomValue=randomValue|((15-randomValue)<<4);
         int frameSize = 7 + arguments.size() * 2 + totalSizeOfArguments;
         byte[] data = new byte[frameSize];
         data[0] = START_OF_FRAME;
         data[1] = shieldId;
-        data[2] = (byte)randomValue;
+        data[2] = verificationByte;
         data[3] = functionId;
         data[4] = (byte) arguments.size();
         data[5] = (byte) (255 - arguments.size());

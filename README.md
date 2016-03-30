@@ -5,9 +5,10 @@
 The 1Sheeld SDK for Android is a library that allows you to scan, connect and interact with 1Sheeld boards through your custom Android app. The SDK is compatible with Android 2.3 or above and requires devices with Bluetooth connectivity.
 
 It allows you to:
-- Scan for 1Sheelds.
-- Connect to multiple 1Sheelds at once. (Up to seven devices)
+- Scan for 1Sheelds (either classic or plus).
+- Connect to multiple 1Sheelds at once, up to seven different ones. (either classic or plus)
 - Send, receive and broadcast raw data and frames.
+- Test, rename and change the communications baud rate of the connected boards.
 
 In Addition to:
 - Automatic connection retry in case of connection failure with 3 different approaches.
@@ -38,12 +39,12 @@ to use the JCenter repository, add the following line to the dependencies sectio
 ```groovy
 dependencies {
     ...
-    compile 'com.integreight.onesheeld:sdk:1.1.0'
+    compile 'com.integreight.onesheeld:sdk:2.0.0'
     ...
 }
 ```
 
-You can replace 1.1.0 with the version you wish to use. (Review the [releases page](https://github.com/Integreight/1Sheeld-Android-SDK/releases) to know the version numbers of the old releases.)
+You can replace 2.0.0 with the version you wish to use. (Review the [releases page](https://github.com/Integreight/1Sheeld-Android-SDK/releases) to know the version numbers of the old releases.)
 
 Then initialize the SDK in the onCreate() method of your application class or main activity.
 
@@ -69,7 +70,7 @@ OneSheeldManager manager = OneSheeldSdk.getManager();
 // Set the connection failing retry count to 1
 manager.setConnectionRetryCount(1);
 // Set the automatic connecting retries to true, this will use 3 different methods for connecting
-manager.setAutomaticConnectingRetries(true);
+manager.setAutomaticConnectingRetriesForClassicConnections(true);
 
 // Construct a new OneSheeldScanningCallback callback and override onDeviceFind method
 OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
@@ -110,6 +111,10 @@ The sample application allows you to:
 - Scan, and connect to multiple 1Sheeld devices at once.
 - Control each device digital pins.
 - Simulate the [push button shield](http://1sheeld.com/shields/push-button-shield/) of the official app and send/broadcast its on/off frames.
+- Query and change the board’s communications baud rate.
+- Send and receive serial data.
+- Rename the board with a random name.
+- Test the board, both firmware and library.
 
 ## Building The SDK ##
 
@@ -142,7 +147,7 @@ Contributions are welcomed, please follow this pattern:
 Don't forget to drop us an email, post on our forum, or mention us on Twitter or Facebook about what you have did with the SDK, we would love to hear about it.
 
 ## Learn More ##
- - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/1.1.0/).
+ - [JavaDoc documentation](http://1sheeld.com/AndroidSDK/JavaDocs/2.0.0/).
  - Play with [Our Sample SDK App](https://github.com/Integreight/1Sheeld-Android-SDK/tree/master/sampleApplication)
  - Download [1Sheeld App](https://play.google.com/store/apps/details?id=com.integreight.onesheeld) from Play Store.
  - Check our [1Sheeld Forums](http://www.1sheeld.com/forum) where you can post your questions and get answers.

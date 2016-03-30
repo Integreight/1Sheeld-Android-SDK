@@ -24,8 +24,8 @@ import android.content.Context;
  */
 public class OneSheeldSdk {
     static final String TAG = "OneSheeldSdk";
-    private static final FirmwareVersion compatibleFirmwareVersion = new FirmwareVersion(1, 5);
-    private static final int compatibleLibraryVersion = 9;
+    private static final FirmwareVersion compatibleFirmwareVersion = new FirmwareVersion(1, 6);
+    private static final int compatibleLibraryVersion = 11;
     private static final int versionCode = BuildConfig.VERSION_CODE;
     private static final String versionName = BuildConfig.VERSION_NAME;
     private static boolean isDebuggingEnabled = false;
@@ -55,7 +55,7 @@ public class OneSheeldSdk {
      */
     public static void setDebugging(boolean value) {
         isDebuggingEnabled = value;
-        if (value) Log.d("Debugging logs enabled.");
+        if (value) Log.i("Debugging logs enabled.");
     }
 
     /**
@@ -106,7 +106,15 @@ public class OneSheeldSdk {
             throw new NullPointerException("The passed context is null, have you checked its validity?");
         OneSheeldSdk.context = context;
         isInit = true;
-        Log.d("OneSheeld Android SDK v" + versionName + " is initialized.");
+        boolean oldDebuggingLogStatus = isDebuggingEnabled;
+        isDebuggingEnabled = false;
+        getManager().disconnectAll();
+        getManager().cancelConnecting();
+        getManager().cancelScanning();
+        getManager().removeAllCallbacks();
+        getManager().init();
+        isDebuggingEnabled = oldDebuggingLogStatus;
+        Log.i("OneSheeld Android SDK v" + versionName + " has initialized.");
     }
 
     static Context getContext() {

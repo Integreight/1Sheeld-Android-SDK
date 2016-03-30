@@ -17,28 +17,36 @@
 package com.integreight.onesheeld.sdk;
 
 /**
- * Represents various version query events for {@link OneSheeldDevice}.
+ * Represents various renaming events for {@link OneSheeldDevice}.
  * <p>Most of the methods here gets called in a thread different than the UI thread.
  * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
  */
-public abstract class OneSheeldVersionQueryCallback {
+public abstract class OneSheeldRenamingCallback {
+
     /**
-     * This method gets called when the device responds with the firmware version.
+     * This method gets called when the device does not respond with a confirmation for the new board name.
      *
-     * @param device          the device where the event occurred
-     * @param firmwareVersion the firmware version
+     * @param device the device where the event occurred
      */
-    public void onFirmwareVersionQueryResponse(OneSheeldDevice device, FirmwareVersion firmwareVersion) {
+    public void onRenamingAttemptTimeOut(OneSheeldDevice device) {
 
     }
 
     /**
-     * This method gets called when the device responds with the library version.
+     * This method gets called when all the attempts to rename the board fail.
      *
-     * @param device         the device where the event occurred
-     * @param libraryVersion the version
+     * @param device the device where the event occurred
      */
-    public void onLibraryVersionQueryResponse(OneSheeldDevice device, int libraryVersion) {
+    public void onAllRenamingAttemptsTimeOut(OneSheeldDevice device) {
+
+    }
+
+    /**
+     * This method gets called when the device confirms the new board name.
+     *
+     * @param device the device where the event occurred
+     */
+    public void onRenamingRequestReceivedSuccessfully(OneSheeldDevice device) {
 
     }
 }

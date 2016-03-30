@@ -16,24 +16,39 @@
 
 package com.integreight.onesheeld.sdk;
 
-abstract class BitsUtils {
+/**
+ * Represents a supported communications baud rate for a {@link OneSheeldDevice}.
+ *
+ * @see OneSheeldDevice
+ */
+public enum SupportedBaudRate {
+    _9600(9600, 0x01),
+    _14400(14400, 0x02),
+    _19200(19200, 0x03),
+    _28800(28800, 0x04),
+    _38400(38400, 0x05),
+    _57600(57600, 0x06),
+    _115200(115200, 0x07);
 
-    static byte setBit(byte b, int bit) {
-        if (bit < 0 || bit >= 8) return b;
-        return (byte) (b | (1 << bit));
+    private int baudRate;
+    private int frameValue;
+
+    SupportedBaudRate(int baudRate, int frameValue) {
+        this.baudRate = baudRate;
+        this.frameValue = frameValue;
     }
 
-    static byte resetBit(byte b, int bit) {
-        if (bit < 0 || bit >= 8) return b;
-        return (byte) (b & (~(1 << bit)));
+    /**
+     * Gets the baud rate.
+     *
+     * @return the baud rate
+     */
+    public int getBaudRate() {
+        return baudRate;
     }
 
-    static boolean isBitSet(byte b, int bit) {
-        return !(bit < 0 || bit >= 8) && (b & (1 << bit)) > 0;
+    byte getFrameValue() {
+        return (byte) frameValue;
     }
 
-    static boolean isBitSet(int b, int bit) {
-        return !(bit < 0 || bit >= 32) && (b & (1 << bit)) > 0;
-    }
 }
-

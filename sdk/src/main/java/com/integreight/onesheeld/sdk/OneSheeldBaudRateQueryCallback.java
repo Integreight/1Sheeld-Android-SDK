@@ -16,24 +16,19 @@
 
 package com.integreight.onesheeld.sdk;
 
-abstract class BitsUtils {
+/**
+ * Represents various baud rate query events for {@link OneSheeldDevice}.
+ * <p>Most of the methods here gets called in a thread different than the UI thread.
+ * So take precautions and use some sort of handlers if you want to interact with the Ui.</p>
+ */
+public abstract class OneSheeldBaudRateQueryCallback {
+    /**
+     * This method gets called when the device responds with the baud rate.
+     *
+     * @param device            the device where the event occurred
+     * @param supportedBaudRate the baud rate or null if it is not supported
+     */
+    public void onBaudRateQueryResponse(OneSheeldDevice device, SupportedBaudRate supportedBaudRate) {
 
-    static byte setBit(byte b, int bit) {
-        if (bit < 0 || bit >= 8) return b;
-        return (byte) (b | (1 << bit));
-    }
-
-    static byte resetBit(byte b, int bit) {
-        if (bit < 0 || bit >= 8) return b;
-        return (byte) (b & (~(1 << bit)));
-    }
-
-    static boolean isBitSet(byte b, int bit) {
-        return !(bit < 0 || bit >= 8) && (b & (1 << bit)) > 0;
-    }
-
-    static boolean isBitSet(int b, int bit) {
-        return !(bit < 0 || bit >= 32) && (b & (1 << bit)) > 0;
     }
 }
-

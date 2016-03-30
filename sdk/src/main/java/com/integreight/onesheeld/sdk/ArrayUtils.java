@@ -23,9 +23,23 @@ abstract class ArrayUtils {
 
     static byte[] copyOfRange(byte[] from, int start, int end) {
         int length = end - start;
-        byte[] result = new byte[length];
-        System.arraycopy(from, start, result, 0, length);
-        return result;
+        if (length > 0) {
+            byte[] result = new byte[length];
+            System.arraycopy(from, start, result, 0, length);
+            return result;
+        } else return new byte[]{};
+    }
+
+    static byte[] concatenateBytesArrays(byte[] firstArray, byte[] secondArray) {
+        if (firstArray == null && secondArray == null) return null;
+        else if (firstArray == null) return secondArray;
+        else if (secondArray == null) return firstArray;
+        else {
+            byte[] both = new byte[firstArray.length + secondArray.length];
+            System.arraycopy(firstArray, 0, both, 0, firstArray.length);
+            System.arraycopy(secondArray, 0, both, firstArray.length, secondArray.length);
+            return both;
+        }
     }
 
     static String toHexString(byte[] array) {
