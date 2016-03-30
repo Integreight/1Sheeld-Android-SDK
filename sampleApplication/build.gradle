@@ -9,7 +9,7 @@ android {
         minSdkVersion 9
         targetSdkVersion 22
         versionCode 160427
-        versionName "1.5.0"
+        versionName "2.0.0"
     }
     buildTypes {
         release {
@@ -22,6 +22,6 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:23.1.1'
-//    compile 'com.integreight.onesheeld:sdk:1.1.0'
+//    compile 'com.integreight.onesheeld:sdk:2.0.0'
     compile project(':sdk')
 }
