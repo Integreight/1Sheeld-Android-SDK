@@ -111,6 +111,10 @@ The sample application allows you to:
 - Scan, and connect to multiple 1Sheeld devices at once.
 - Control each device digital pins.
 - Simulate the [push button shield](http://1sheeld.com/shields/push-button-shield/) of the official app and send/broadcast its on/off frames.
+- Query and change the board’s communications baud rate.
+- Send and receive serial data.
+- Rename the board with a random name.
+- Test the board, both firmware and library.
 
 ## Building The SDK ##
 
