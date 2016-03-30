@@ -70,7 +70,7 @@ OneSheeldManager manager = OneSheeldSdk.getManager();
 // Set the connection failing retry count to 1
 manager.setConnectionRetryCount(1);
 // Set the automatic connecting retries to true, this will use 3 different methods for connecting
-manager.setAutomaticConnectingRetries(true);
+manager.setAutomaticConnectingRetriesForClassicConnections(true);
 
 // Construct a new OneSheeldScanningCallback callback and override onDeviceFind method
 OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
