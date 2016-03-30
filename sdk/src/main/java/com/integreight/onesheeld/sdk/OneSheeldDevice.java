@@ -1812,7 +1812,7 @@ public class OneSheeldDevice {
                     Thread.currentThread().interrupt();
                     return;
                 } catch (ShieldFrameNotComplete e) {
-                    Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 1 second, canceling what we've read so far.");
+                    Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 2 seconds, canceling what we've read so far.");
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = null;
