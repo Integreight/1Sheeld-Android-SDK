@@ -597,8 +597,29 @@ public class OneSheeldManager {
      * Removes all scanning, connection and error callbacks.
      */
     public void removeAllCallbacks() {
+        removeAllScanningCallbacks();
+        removeAllConnectionCallbacks();
+        removeAllErrorCallbacks();
+    }
+
+    /**
+     * Removes all scanning callbacks.
+     */
+    public void removeAllScanningCallbacks() {
         scanningCallbacks.clear();
+    }
+
+    /**
+     * Removes all connection callbacks.
+     */
+    public void removeAllConnectionCallbacks() {
         connectionCallbacks.clear();
+    }
+
+    /**
+     * Removes all error callbacks.
+     */
+    public void removeAllErrorCallbacks() {
         errorCallbacks.clear();
     }
 

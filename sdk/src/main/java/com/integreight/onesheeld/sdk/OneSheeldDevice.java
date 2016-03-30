@@ -471,15 +471,79 @@ public class OneSheeldDevice {
      * @see OneSheeldRenamingCallback
      * @see OneSheeldBaudRateQueryCallback
      */
-    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback, OneSheeldBoardTestingCallback testingCallback, OneSheeldBoardRenamingCallback renamingCallback, OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
+    public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldTestingCallback testingCallback, OneSheeldRenamingCallback renamingCallback, OneSheeldBaudRateQueryCallback baudRateQueryCallback, OneSheeldErrorCallback errorCallback) {
         addConnectionCallback(connectionCallback);
-        addErrorCallback(errorCallback);
         addDataCallback(dataCallback);
         addVersionQueryCallback(versionQueryCallback);
         addTestingCallback(testingCallback);
         addRenamingCallback(renamingCallback);
         addBaudRateQueryCallback(baudRateQueryCallback);
+        addErrorCallback(errorCallback);
     }
+
+    /**
+     * Removes all connection, data, version query, board testing, renaming, and baud rate query callbacks.
+     */
+    public void removeAllCallbacks() {
+        removeAllConnectionCallbacks();
+        removeAllDataCallbacks();
+        removeAllVersionQueryCallbacks();
+        removeAllTestingCallbacks();
+        removeAllRenamingCallbacks();
+        removeAllBaudRateQueryCallbacks();
+        removeAllErrorCallbacks();
+
+    }
+
+    /**
+     * Removes all connection callbacks.
+     */
+    public void removeAllConnectionCallbacks() {
+        connectionCallbacks.clear();
+    }
+
+    /**
+     * Removes all data callbacks.
+     */
+    public void removeAllDataCallbacks() {
+        dataCallbacks.clear();
+    }
+
+    /**
+     * Removes all error callbacks.
+     */
+    public void removeAllErrorCallbacks() {
+        errorCallbacks.clear();
+    }
+
+    /**
+     * Removes all version query callbacks.
+     */
+    public void removeAllVersionQueryCallbacks() {
+        versionQueryCallbacks.clear();
+    }
+
+    /**
+     * Removes all board testing callbacks.
+     */
+    public void removeAllTestingCallbacks() {
+        testingCallbacks.clear();
+    }
+
+    /**
+     * Removes all board renaming callbacks.
+     */
+    public void removeAllRenamingCallbacks() {
+        renamingCallbacks.clear();
+    }
+
+    /**
+     * Removes all baud rate query callbacks.
+     */
+    public void removeAllBaudRateQueryCallbacks() {
+        baudRateQueryCallbacks.clear();
+    }
+
 
     private void clearAllBuffers() {
         bluetoothBuffer.clear();
