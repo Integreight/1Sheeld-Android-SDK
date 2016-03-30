@@ -441,6 +441,7 @@ public class OneSheeldManager {
      * @throws MissingBluetoothPermissionsException if the Bluetooth permissions has been omitted from AndroidManifest.xml
      * @throws BluetoothNotSupportedException       if the Android device doesn't support Bluetooth.
      * @throws NullPointerException                 if the device is null
+     * @see OneSheeldConnectionCallback
      */
     public void connect(OneSheeldDevice device) {
         if (device == null)
@@ -593,7 +594,7 @@ public class OneSheeldManager {
     }
 
     /**
-     * Remove all scanning, connection and error callbacks
+     * Removes all scanning, connection and error callbacks.
      */
     public void removeAllCallbacks() {
         scanningCallbacks.clear();

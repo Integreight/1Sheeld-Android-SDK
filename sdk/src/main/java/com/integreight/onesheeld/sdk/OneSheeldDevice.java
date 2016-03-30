@@ -304,6 +304,7 @@ public class OneSheeldDevice {
      * Add a connection callback.
      *
      * @param connectionCallback the connection callback
+     * @see OneSheeldConnectionCallback
      */
     public void addConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && !connectionCallbacks.contains(connectionCallback))
@@ -314,6 +315,7 @@ public class OneSheeldDevice {
      * Add a data callback.
      *
      * @param dataCallback the data callback
+     * @see OneSheeldDataCallback
      */
     public void addDataCallback(OneSheeldDataCallback dataCallback) {
         if (dataCallback != null && !dataCallbacks.contains(dataCallback))
@@ -324,6 +326,7 @@ public class OneSheeldDevice {
      * Add a version query callback.
      *
      * @param versionQueryCallback the version query callback
+     * @see OneSheeldVersionQueryCallback
      */
     public void addVersionQueryCallback(OneSheeldVersionQueryCallback versionQueryCallback) {
         if (versionQueryCallback != null && !versionQueryCallbacks.contains(versionQueryCallback))
@@ -334,6 +337,7 @@ public class OneSheeldDevice {
      * Add an error callback.
      *
      * @param errorCallback the error callback
+     * @see OneSheeldErrorCallback
      */
     public void addErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && !errorCallbacks.contains(errorCallback))
@@ -344,6 +348,7 @@ public class OneSheeldDevice {
      * Add a testing callback.
      *
      * @param testingCallback the testing callback
+     * @see OneSheeldTestingCallback
      */
     public void addTestingCallback(OneSheeldTestingCallback testingCallback) {
         if (testingCallback != null && !testingCallbacks.contains(testingCallback))
@@ -365,6 +370,7 @@ public class OneSheeldDevice {
      * Add a baud rate query callback.
      *
      * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldBaudRateQueryCallback
      */
     public void addBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
         if (baudRateQueryCallback != null && !baudRateQueryCallbacks.contains(baudRateQueryCallback))
@@ -375,6 +381,7 @@ public class OneSheeldDevice {
      * Remove a connection callback.
      *
      * @param connectionCallback the connection callback
+     * @see OneSheeldConnectionCallback
      */
     public void removeConnectionCallback(OneSheeldConnectionCallback connectionCallback) {
         if (connectionCallback != null && connectionCallbacks.contains(connectionCallback))
@@ -385,6 +392,7 @@ public class OneSheeldDevice {
      * Remove an error callback.
      *
      * @param errorCallback the error callback
+     * @see OneSheeldErrorCallback
      */
     public void removeErrorCallback(OneSheeldErrorCallback errorCallback) {
         if (errorCallback != null && errorCallbacks.contains(errorCallback))
@@ -395,6 +403,7 @@ public class OneSheeldDevice {
      * Remove a renaming callback.
      *
      * @param renamingCallback the renaming callback
+     * @see OneSheeldRenamingCallback
      */
     public void removeRenamingCallback(OneSheeldRenamingCallback renamingCallback) {
         if (renamingCallback != null && renamingCallbacks.contains(renamingCallback))
@@ -405,6 +414,7 @@ public class OneSheeldDevice {
      * Remove a testing callback.
      *
      * @param testingCallback the testing callback
+     * @see OneSheeldTestingCallback
      */
     public void removeTestingCallback(OneSheeldTestingCallback testingCallback) {
         if (testingCallback != null && testingCallbacks.contains(testingCallback))
@@ -415,6 +425,7 @@ public class OneSheeldDevice {
      * Remove a data callback.
      *
      * @param dataCallback the data callback
+     * @see OneSheeldDataCallback
      */
     public void removeDataCallback(OneSheeldDataCallback dataCallback) {
         if (dataCallback != null && dataCallbacks.contains(dataCallback))
@@ -425,6 +436,7 @@ public class OneSheeldDevice {
      * Remove a version query callback.
      *
      * @param versionQueryCallback the version query callback
+     * @see OneSheeldVersionQueryCallback
      */
     public void removeVersionQueryCallback(OneSheeldVersionQueryCallback versionQueryCallback) {
         if (versionQueryCallback != null && versionQueryCallbacks.contains(versionQueryCallback))
@@ -435,6 +447,7 @@ public class OneSheeldDevice {
      * Remove a baud rate query callback.
      *
      * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldBaudRateQueryCallback
      */
     public void removeBaudRateQueryCallback(OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
         if (baudRateQueryCallback != null && baudRateQueryCallbacks.contains(baudRateQueryCallback))
@@ -444,12 +457,19 @@ public class OneSheeldDevice {
     /**
      * Add all of the device callbacks in one method call.
      *
-     * @param connectionCallback   the connection callback
-     * @param dataCallback         the data callback
-     * @param versionQueryCallback the version query callback
-     * @param errorCallback        the error callback
-     * @param testingCallback      the testing callback
-     * @param renamingCallback     the renaming callback
+     * @param connectionCallback    the connection callback
+     * @param dataCallback          the data callback
+     * @param versionQueryCallback  the version query callback
+     * @param errorCallback         the error callback
+     * @param testingCallback       the testing callback
+     * @param renamingCallback      the renaming callback
+     * @param baudRateQueryCallback the baud rate query callback
+     * @see OneSheeldConnectionCallback
+     * @see OneSheeldDataCallback
+     * @see OneSheeldVersionQueryCallback
+     * @see OneSheeldTestingCallback
+     * @see OneSheeldRenamingCallback
+     * @see OneSheeldBaudRateQueryCallback
      */
     public void addCallbacks(OneSheeldConnectionCallback connectionCallback, OneSheeldDataCallback dataCallback, OneSheeldVersionQueryCallback versionQueryCallback, OneSheeldErrorCallback errorCallback, OneSheeldBoardTestingCallback testingCallback, OneSheeldBoardRenamingCallback renamingCallback, OneSheeldBaudRateQueryCallback baudRateQueryCallback) {
         addConnectionCallback(connectionCallback);
@@ -793,6 +813,13 @@ public class OneSheeldDevice {
         }
     }
 
+    /**
+     * Rename the board. Note: if the new name does not have "1Sheeld" in its name, it will not be visible in any future scans by the SDK.
+     *
+     * @param name the new name
+     * @throws NullPointerException if the passed name is null or zero length
+     * @see OneSheeldRenamingCallback
+     */
     public boolean rename(String name) {
         if (name == null || name.length() <= 0)
             return false;
@@ -821,6 +848,11 @@ public class OneSheeldDevice {
         return true;
     }
 
+    /**
+     * Test the board, and make sure the firmware and library are working correctly.
+     *
+     * @see OneSheeldTestingCallback
+     */
     public boolean test() {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
@@ -975,6 +1007,8 @@ public class OneSheeldDevice {
 
     /**
      * Query the firmware version.
+     *
+     * @see OneSheeldVersionQueryCallback
      */
     public void queryFirmwareVersion() {
         if (!isConnected()) {
@@ -988,6 +1022,8 @@ public class OneSheeldDevice {
 
     /**
      * Query the library version.
+     *
+     * @see OneSheeldVersionQueryCallback
      */
     public void queryLibraryVersion() {
         if (!isConnected()) {
@@ -1075,6 +1111,8 @@ public class OneSheeldDevice {
 
     /**
      * Query the current baud rate of the device.
+     *
+     * @see OneSheeldBaudRateQueryCallback
      */
     public void queryBaudrate() {
         if (!isConnected()) {
@@ -1094,6 +1132,8 @@ public class OneSheeldDevice {
 
     /**
      * Change the baud rate of the device.
+     *
+     * @throws NullPointerException if the passed baud rate is null
      */
     public void setBaudrate(SupportedBaudRate baudRate) {
         if (!isConnected()) {
@@ -1365,6 +1405,8 @@ public class OneSheeldDevice {
 
     /**
      * Disconnect the device.
+     *
+     * @see OneSheeldConnectionCallback
      */
     public void disconnect() {
         Log.i("Device " + this.name + ": Disconnection request received.");
@@ -1373,6 +1415,8 @@ public class OneSheeldDevice {
 
     /**
      * Connect to the device.
+     *
+     * @see OneSheeldConnectionCallback
      */
     public void connect() {
         Log.i("Device " + this.name + ": Delegate the connection request to the manager.");
@@ -1422,6 +1466,11 @@ public class OneSheeldDevice {
         }
     }
 
+    /**
+     * Checks whether the device type is plus or classic.
+     *
+     * @return the boolean
+     */
     public boolean isTypePlus() {
         return Build.VERSION.SDK_INT >= 18 && (isTypePlus || bluetoothDevice.getType() == BluetoothDevice.DEVICE_TYPE_LE);
     }
