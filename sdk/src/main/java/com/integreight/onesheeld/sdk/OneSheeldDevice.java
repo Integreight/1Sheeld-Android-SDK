@@ -2122,8 +2122,10 @@ public class OneSheeldDevice {
         public void run() {
             while (!this.isInterrupted()) {
                 try {
-                    while ((readByteFromSerialBuffer()) != ShieldFrame.START_OF_FRAME)
-                        ;
+                    while (true) {
+                        if (readByteFromSerialBuffer() == ShieldFrame.START_OF_FRAME)
+                            break;
+                    }
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = new TimeOut(2000);
@@ -2144,7 +2146,6 @@ public class OneSheeldDevice {
                         Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        serialBuffer.clear();
                         continue;
                     }
                     boolean continueRequested = false;
@@ -2155,7 +2156,6 @@ public class OneSheeldDevice {
                             Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                             if (ShieldFrameTimeout != null)
                                 ShieldFrameTimeout.stopTimer();
-                            serialBuffer.clear();
                             continueRequested = true;
                             break;
                         }
@@ -2170,7 +2170,6 @@ public class OneSheeldDevice {
                         Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
                         if (ShieldFrameTimeout != null)
                             ShieldFrameTimeout.stopTimer();
-                        serialBuffer.clear();
                         continue;
                     }
                     if (ShieldFrameTimeout != null)
@@ -2183,35 +2182,41 @@ public class OneSheeldDevice {
                     }
 
                     if (shieldId == CONFIGURATION_SHIELD_ID) {
-                        if (functionId == LIBRARY_VERSION_RESPONSE) {
-                        } else if (functionId == IS_HARDWARE_CONNECTED_QUERY) {
-                            notifyHardwareOfConnection();
-                        } else if (functionId == IS_CALLBACK_ENTERED) {
-                            callbackEntered();
-                        } else if (functionId == IS_CALLBACK_EXITED) {
-                            callbackExited();
-                        } else if (functionId == LIBRARY_TESTING_CHALLENGE_RESPONSE) {
-                            hasLibraryTestStarted = false;
-                            boolean isTestResultCorrect = false;
-                            try {
-                                if (frame.getArguments().size() == 2) {
-                                    if (frame.getArgumentAsString(0).equals("Yup, I'm feeling great!")) {
-                                        if (frame.getArgument(1).length == 1 && frame.getArgument(1)[0] == correctTestingChallengeAnswer) {
-                                            isTestResultCorrect = true;
+                        switch (functionId) {
+                            case LIBRARY_VERSION_RESPONSE:
+                                break;
+                            case IS_HARDWARE_CONNECTED_QUERY:
+                                notifyHardwareOfConnection();
+                                break;
+                            case IS_CALLBACK_ENTERED:
+                                callbackEntered();
+                                break;
+                            case IS_CALLBACK_EXITED:
+                                callbackExited();
+                                break;
+                            case LIBRARY_TESTING_CHALLENGE_RESPONSE:
+                                hasLibraryTestStarted = false;
+                                boolean isTestResultCorrect = false;
+                                try {
+                                    if (frame.getArguments().size() == 2) {
+                                        if (frame.getArgumentAsString(0).equals("Yup, I'm feeling great!")) {
+                                            if (frame.getArgument(1).length == 1 && frame.getArgument(1)[0] == correctTestingChallengeAnswer) {
+                                                isTestResultCorrect = true;
+                                            }
                                         }
                                     }
+                                } catch (Exception ignored) {
                                 }
-                            } catch (Exception ignored) {
-                            }
-                            if (isTestResultCorrect)
-                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing succeeded.");
-                            else
-                                Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
-                            stopLibraryTestingTimeOut();
-                            if (isConnected()) {
-                                for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
-                                    oneSheeldTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
-                            }
+                                if (isTestResultCorrect)
+                                    Log.i("Device " + OneSheeldDevice.this.name + ": Library testing succeeded.");
+                                else
+                                    Log.i("Device " + OneSheeldDevice.this.name + ": Library testing failed.");
+                                stopLibraryTestingTimeOut();
+                                if (isConnected()) {
+                                    for (OneSheeldTestingCallback oneSheeldTestingCallback : testingCallbacks)
+                                        oneSheeldTestingCallback.onLibraryTestResult(OneSheeldDevice.this, isTestResultCorrect);
+                                }
+                                break;
                         }
                     } else {
                         Log.i("Device " + OneSheeldDevice.this.name + ": Frame received, values: " + frame + ".");
@@ -2230,7 +2235,6 @@ public class OneSheeldDevice {
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = null;
-                    continue;
                 }
             }
         }
