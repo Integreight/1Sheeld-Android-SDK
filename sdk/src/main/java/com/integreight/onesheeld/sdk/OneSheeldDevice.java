@@ -2129,7 +2129,13 @@ public class OneSheeldDevice {
                     ShieldFrameTimeout = new TimeOut(2000);
                     int tempArduinoLibVersion = readByteFromSerialBuffer();
                     byte shieldId = readByteFromSerialBuffer();
-                    byte instanceId = readByteFromSerialBuffer();
+                    byte verificationByte = readByteFromSerialBuffer();
+                    if ((((verificationByte & 0xF0) >> 4) & (verificationByte & 0x0F)) != 0) {
+                        Log.i("Device " + OneSheeldDevice.this.name + ": Frame is incorrect, canceling what we've read so far.");
+                        if (ShieldFrameTimeout != null)
+                            ShieldFrameTimeout.stopTimer();
+                        continue;
+                    }
                     byte functionId = readByteFromSerialBuffer();
                     ShieldFrame frame = new ShieldFrame(shieldId, functionId);
                     int argumentsNumber = readByteFromSerialBuffer() & 0xFF;
