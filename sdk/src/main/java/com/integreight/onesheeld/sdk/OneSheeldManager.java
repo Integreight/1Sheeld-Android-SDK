@@ -526,19 +526,6 @@ public class OneSheeldManager {
     }
 
     /**
-     * Add all of the manager callbacks in one method call.
-     *
-     * @param scanningCallback   the scanning callback
-     * @param connectionCallback the connection callback
-     * @param errorCallback      the error callback
-     */
-    public void addCallbacks(OneSheeldScanningCallback scanningCallback, OneSheeldConnectionCallback connectionCallback, OneSheeldErrorCallback errorCallback) {
-        addScanningCallback(scanningCallback);
-        addConnectionCallback(connectionCallback);
-        addErrorCallback(errorCallback);
-    }
-
-    /**
      * Add a connection callback.
      *
      * @param connectionCallback the connection callback
