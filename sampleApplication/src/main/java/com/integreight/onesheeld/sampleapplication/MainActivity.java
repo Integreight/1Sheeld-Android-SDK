@@ -365,7 +365,23 @@ public class MainActivity extends AppCompatActivity {
             } else if (baudRateSpinner.getSelectedItem().toString().equals("57600")) {
                 selectedConnectedDevice.setBaudRate(SupportedBaudRate._57600);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("115200")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._115200);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._115200);
+            }
+        }
+    }
+
+    public void onClickFirmwareUpdate(View v) {
+        if (selectedConnectedDevice != null) {
+            InputStream is;
+            try {
+                is = getAssets().open("firmware-plus-500ml.bin");
+
+                byte[] fileBytes = new byte[is.available()];
+                is.read(fileBytes);
+                is.close();
+                selectedConnectedDevice.update(fileBytes);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }

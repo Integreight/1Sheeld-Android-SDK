@@ -250,6 +250,12 @@
                     android:onClick="onClickBluetoothTestingDialog"
                     android:text="Bluetooth Testing Dialog" />
 
+                <Button
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:onClick="onClickFirmwareUpdate"
+                    android:text="Update Firmware" />
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
