@@ -51,7 +51,7 @@ Then initialize the SDK in the onCreate() method of your application class or ma
 ```java
 // Pass the context to the init method.
 OneSheeldSdk.init(applicationContext);
-// Optional, enable dubbing messages.
+// Optional, enable debugging messages.
 OneSheeldSdk.setDebugging(true);
 ```
 
