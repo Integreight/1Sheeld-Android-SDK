@@ -58,5 +58,10 @@ public enum OneSheeldError {
      * Happens if the connection to {@link OneSheeldDevice} failed after all
      * attempts.
      */
-    BLUETOOTH_CONNECTION_FAILED
+    BLUETOOTH_CONNECTION_FAILED,
+    /**
+     * Happens if any {@link OneSheeldDevice} operation is requested while
+     * the device is updating the firmware.
+     */
+    FIRMWARE_UPDATE_IN_PROGRESS,
 }
