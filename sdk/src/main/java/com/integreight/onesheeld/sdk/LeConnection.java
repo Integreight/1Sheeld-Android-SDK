@@ -259,8 +259,8 @@ class LeConnection extends OneSheeldConnection {
                 try {
                     connectionLock.wait();
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                     connectionInterrupt();
+                    Thread.currentThread().interrupt();
                     return false;
                 }
             }
