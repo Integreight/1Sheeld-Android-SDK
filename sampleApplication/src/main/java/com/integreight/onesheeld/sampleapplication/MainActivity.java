@@ -346,24 +346,24 @@ public class MainActivity extends AppCompatActivity {
     public void onClickQueryBaudRate(View v) {
         if (selectedConnectedDevice != null) {
             isBaudRateQueried = true;
-            selectedConnectedDevice.queryBaudrate();
+            selectedConnectedDevice.queryBaudRate();
         }
     }
 
     public void onClickSetBaudRate(View v) {
         if (selectedConnectedDevice != null && baudRateSpinner != null) {
             if (baudRateSpinner.getSelectedItem().toString().equals("9600")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._9600);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._9600);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("14400")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._14400);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._14400);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("19200")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._19200);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._19200);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("28800")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._28800);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._28800);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("38400")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._38400);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._38400);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("57600")) {
-                selectedConnectedDevice.setBaudrate(SupportedBaudRate._57600);
+                selectedConnectedDevice.setBaudRate(SupportedBaudRate._57600);
             } else if (baudRateSpinner.getSelectedItem().toString().equals("115200")) {
                 selectedConnectedDevice.setBaudrate(SupportedBaudRate._115200);
             }
