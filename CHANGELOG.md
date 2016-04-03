@@ -1,4 +1,4 @@
-## v2.0.0(160430) (March 30, 2016)
+## v2.0.0(160330) (March 30, 2016)
   - Build SDK using the android-23 api.
   - Added the ability to connect to 1Sheeld+ boards (BLE).
   - Made the logs printed using the information tag not the debug tag.
