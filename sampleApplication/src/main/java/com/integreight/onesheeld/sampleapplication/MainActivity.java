@@ -31,6 +31,8 @@ import com.integreight.onesheeld.sdk.OneSheeldTestingCallback;
 import com.integreight.onesheeld.sdk.ShieldFrame;
 import com.integreight.onesheeld.sdk.SupportedBaudRate;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,15 +79,25 @@ public class MainActivity extends AppCompatActivity {
 
     private OneSheeldScanningCallback scanningCallback = new OneSheeldScanningCallback() {
         @Override
-        public void onDeviceFind(OneSheeldDevice device) {
-            oneSheeldScannedDevices.add(device);
-            scannedDevicesNames.add(device.getName());
-            scannedDevicesArrayAdapter.notifyDataSetChanged();
+        public void onDeviceFind(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    oneSheeldScannedDevices.add(device);
+                    scannedDevicesNames.add(device.getName());
+                    scannedDevicesArrayAdapter.notifyDataSetChanged();
+                }
+            });
         }
 
         @Override
         public void onScanFinish(List<OneSheeldDevice> foundDevices) {
-            scanningProgressDialog.dismiss();
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    scanningProgressDialog.dismiss();
+                }
+            });
         }
     };
     private OneSheeldTestingCallback testingCallback = new OneSheeldTestingCallback() {
