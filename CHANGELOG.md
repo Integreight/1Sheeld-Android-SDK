@@ -1,3 +1,8 @@
+## v2.1.0(160404) (April 4, 2016)
+  - Made sure that the verification byte in the received frames is correct.
+  - Added the ability to update the board's firmware.
+  - Made general refactoring and improvements.
+
 ## v2.0.0(160330) (March 30, 2016)
   - Build SDK using the android-23 api.
   - Added the ability to connect to 1Sheeld+ boards (BLE).
