@@ -116,6 +116,7 @@ public class OneSheeldDevice {
     private final byte SUB = 0x1A;
     private final byte KEY[] = {(byte) 0x64, (byte) 0x0E, (byte) 0x1C, (byte) 0x39, (byte) 0x14, (byte) 0x28, (byte) 0x57, (byte) 0xAA};
     private final Object processInputLock = new Object();
+    private final Object isUpdatingFirmwareLock = new Object();
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
@@ -171,7 +172,7 @@ public class OneSheeldDevice {
     private boolean hasRenamingStarted;
     private SupportedBaudRate currentBaudRate;
     private boolean isBaudRateQueried;
-    private AtomicBoolean isUpdatingFirmware;
+    private boolean isUpdatingFirmware;
     private TimeOut firmwareUpdatingTimeOut;
     private Thread firmwareUpdatingThread;
     private AtomicBoolean neglectNextBluetoothResetFrame;
@@ -292,7 +293,7 @@ public class OneSheeldDevice {
         renamingRetries = MAX_RENAMING_RETRIES_NUMBER;
         currentBaudRate = SupportedBaudRate._115200;
         isBaudRateQueried = false;
-        isUpdatingFirmware = new AtomicBoolean(false);
+        isUpdatingFirmware = false;
         neglectNextBluetoothResetFrame = new AtomicBoolean(false);
     }
 
@@ -322,7 +323,9 @@ public class OneSheeldDevice {
      * @return the boolean
      */
     public boolean isUpdatingFirmware() {
-        return isUpdatingFirmware.get();
+        synchronized (isUpdatingFirmwareLock) {
+            return isUpdatingFirmware;
+        }
     }
 
     private void stopBuffersThreads() {
@@ -746,7 +749,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -826,7 +829,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -889,7 +892,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -942,7 +945,7 @@ public class OneSheeldDevice {
         else if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return false;
         } else if (hasRenamingStarted) {
@@ -977,7 +980,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return false;
         } else if (hasFirmwareTestStarted || hasLibraryTestStarted) {
@@ -1025,7 +1028,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return false;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return false;
         }
@@ -1050,7 +1053,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1074,7 +1077,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1106,7 +1109,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1149,7 +1152,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1173,7 +1176,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1224,12 +1227,12 @@ public class OneSheeldDevice {
     }
 
     private void write(byte[] writeData) {
-        if (isConnected() && connectedThread != null && connectedThread.isAlive() && !isUpdatingFirmware.get())
+        if (isConnected() && connectedThread != null && connectedThread.isAlive() && !isUpdatingFirmware())
             connectedThread.write(writeData);
     }
 
     private void write(byte writeData) {
-        if (isConnected() && connectedThread != null && connectedThread.isAlive() && !isUpdatingFirmware.get())
+        if (isConnected() && connectedThread != null && connectedThread.isAlive() && !isUpdatingFirmware())
             connectedThread.write(new byte[]{writeData});
     }
 
@@ -1244,7 +1247,9 @@ public class OneSheeldDevice {
     }
 
     private void initFirmware() {
-        isUpdatingFirmware.set(false);
+        synchronized (isUpdatingFirmwareLock) {
+            isUpdatingFirmware = false;
+        }
         isBluetoothBufferWaiting = false;
         isSerialBufferWaiting = false;
         arduinoLibraryVersion = -1;
@@ -1268,7 +1273,7 @@ public class OneSheeldDevice {
         setAllPinsAsInput();
         queryInputPinsValues();
         respondToIsAlive();
-        queryFirmwareVersion();
+        sendFirmwareVersionQueryFrame();
         sendUnMuteFrame();
         sendBaudRateQueryFrame();
         sendLibraryVersionQueryFrame();
@@ -1285,7 +1290,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1312,7 +1317,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1336,7 +1341,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1364,7 +1369,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1625,7 +1630,9 @@ public class OneSheeldDevice {
             this.isConnected = false;
         }
         if (isConnected) {
-            isUpdatingFirmware.set(false);
+            synchronized (isUpdatingFirmwareLock) {
+                isUpdatingFirmware = false;
+            }
             neglectNextBluetoothResetFrame.set(false);
             stopBuffersThreads();
             if (connectedThread != null) {
@@ -1729,7 +1736,7 @@ public class OneSheeldDevice {
                 break;
             } else if (readChar == CAN) {
                 writeByteForFirmwareUpdate(CAN);
-                onFirmwareUpdateFailure(false, "Firmware updating failed, the board canceled the process");
+                onFirmwareUpdateFailure(false, "Firmware updating failed, the board canceled the process!");
                 return;
             } else {
                 writeByteForFirmwareUpdate(CAN);
@@ -1813,7 +1820,7 @@ public class OneSheeldDevice {
         if (!isConnected()) {
             onError(OneSheeldError.DEVICE_NOT_CONNECTED);
             return;
-        } else if (isUpdatingFirmware.get()) {
+        } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
         }
@@ -1858,7 +1865,7 @@ public class OneSheeldDevice {
     }
 
     private void onFirmwareUpdateFailure(boolean isTimeOut, String errorMessage) {
-        Log.i("Device " + OneSheeldDevice.this.name + ": " + errorMessage + ".");
+        Log.i("Device " + OneSheeldDevice.this.name + ": " + errorMessage);
         stopFirmwareUpdateThreads();
         prepareForFirmwareUpdateEnd();
         for (OneSheeldFirmwareUpdateCallback firmwareUpdateCallback : firmwareUpdateCallbacks) {
@@ -1890,29 +1897,40 @@ public class OneSheeldDevice {
     }
 
     private void prepareForFirmwareUpdateStart() {
-        sendMuteFrame();
-        resetBoard();
-        isUpdatingFirmware.set(true);
-        clearAllBuffers();
-        resetProcessInput();
+        synchronized (isUpdatingFirmwareLock) {
+            sendMuteFrame();
+            resetBoard();
+            isUpdatingFirmware = true;
+            clearAllBuffers();
+            resetProcessInput();
+        }
     }
 
     private void prepareForFirmwareUpdateEnd() {
-        if (isUpdatingFirmware.get()) {
-            isUpdatingFirmware.set(false);
-            neglectNextBluetoothResetFrame.set(true);
-            isMuted = false;
-            serialBuffer.clear();
-            synchronized (bluetoothBuffer) {
-                bluetoothBuffer.clear();
-                resetProcessInput();
-                for (byte dataByte : firmwareUpdateBuffer) {
-                    bluetoothBuffer.add(dataByte);
+        synchronized (isUpdatingFirmwareLock) {
+            if (isUpdatingFirmware) {
+                neglectNextBluetoothResetFrame.set(true);
+                isMuted = false;
+                serialBuffer.clear();
+                synchronized (bluetoothBuffer) {
+                    ArrayList<Byte> pendingBytes = new ArrayList<>();
+                    for (byte dataByte : firmwareUpdateBuffer) {
+                        pendingBytes.add(dataByte);
+                    }
+                    for (byte dataByte : bluetoothBuffer) {
+                        pendingBytes.add(dataByte);
+                    }
+                    bluetoothBuffer.clear();
+                    for (byte dataByte : pendingBytes) {
+                        bluetoothBuffer.add(dataByte);
+                    }
+                    isUpdatingFirmware = false;
+                    resetProcessInput();
                 }
+                firmwareUpdateBuffer.clear();
             }
-            firmwareUpdateBuffer.clear();
-            sendInitializationFrames();
         }
+        sendInitializationFrames();
     }
 
     private void stopRenamingBoardTimeOut() {
@@ -2092,7 +2110,7 @@ public class OneSheeldDevice {
             while (!this.isInterrupted()) {
                 try {
                     input = readByteFromBluetoothBuffer();
-                    if (isUpdatingFirmware.get()) {
+                    if (isUpdatingFirmware()) {
                         firmwareUpdateBuffer.add(input);
                     } else {
                         synchronized (processInputLock) {
