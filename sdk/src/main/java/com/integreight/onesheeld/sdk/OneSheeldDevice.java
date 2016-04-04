@@ -117,6 +117,7 @@ public class OneSheeldDevice {
     private final byte KEY[] = {(byte) 0x64, (byte) 0x0E, (byte) 0x1C, (byte) 0x39, (byte) 0x14, (byte) 0x28, (byte) 0x57, (byte) 0xAA};
     private final Object processInputLock = new Object();
     private final Object isUpdatingFirmwareLock = new Object();
+    private final Object bluetoothBufferLock = new Object();
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
@@ -585,7 +586,7 @@ public class OneSheeldDevice {
 
 
     private void clearAllBuffers() {
-        synchronized (bluetoothBuffer) {
+        synchronized (bluetoothBufferLock) {
             bluetoothBuffer.clear();
 
         }
@@ -1912,7 +1913,7 @@ public class OneSheeldDevice {
                 neglectNextBluetoothResetFrame.set(true);
                 isMuted = false;
                 serialBuffer.clear();
-                synchronized (bluetoothBuffer) {
+                synchronized (bluetoothBufferLock) {
                     ArrayList<Byte> pendingBytes = new ArrayList<>();
                     for (byte dataByte : firmwareUpdateBuffer) {
                         pendingBytes.add(dataByte);
@@ -2076,7 +2077,7 @@ public class OneSheeldDevice {
             onConnect();
             while (!this.isInterrupted()) {
                 byte[] readBytes = connection.read();
-                synchronized (bluetoothBuffer) {
+                synchronized (bluetoothBufferLock) {
                     for (byte readByte : readBytes) {
                         bluetoothBuffer.add(readByte);
                     }
