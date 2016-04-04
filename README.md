@@ -116,6 +116,7 @@ The sample application allows you to:
 - Send and receive serial data.
 - Rename the board with a random name.
 - Test the board, both firmware and library.
+- Update firmware from a set of preloaded firmwares.
 
 ## Building The SDK ##
 
