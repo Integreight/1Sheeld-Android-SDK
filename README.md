@@ -9,6 +9,7 @@ It allows you to:
 - Connect to multiple 1Sheelds at once, up to seven different ones. (either classic or plus)
 - Send, receive and broadcast raw data and frames.
 - Test, rename and change the communications baud rate of the connected boards.
+- Update firmware.
 
 In Addition to:
 - Automatic connection retry in case of connection failure with 3 different approaches.
