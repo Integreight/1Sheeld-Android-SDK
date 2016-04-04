@@ -1824,7 +1824,8 @@ public class OneSheeldDevice {
         } else if (isUpdatingFirmware()) {
             onError(OneSheeldError.FIRMWARE_UPDATE_IN_PROGRESS);
             return;
-        }
+        } else if (fileArray == null || fileArray.length <= 0)
+            throw new NullPointerException("The passed firmware is invalid, have you checked its validity?");
         stopFirmwareUpdateThreads();
         firmwareUpdatingThread = new Thread(new Runnable() {
 
