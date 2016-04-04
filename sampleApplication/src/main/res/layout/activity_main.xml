@@ -18,17 +18,16 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:weightSum="2">
+        android:orientation="horizontal">
 
         <TextView
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Scanned Devices" />
 
         <TextView
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Connected Devices" />
@@ -37,12 +36,11 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:weightSum="2">
+        android:orientation="horizontal">
 
         <ListView
             android:id="@+id/scanned_list"
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="100dp"
             android:layout_margin="5px"
             android:layout_weight="1"
@@ -53,7 +51,7 @@
 
         <ListView
             android:id="@+id/connected_list"
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="100dp"
             android:layout_margin="5px"
             android:layout_weight="1"
@@ -68,12 +66,11 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:weightSum="2">
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/connect_1sheeld"
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="onClickConnect"
@@ -81,7 +78,7 @@
 
         <Button
             android:id="@+id/disconnect_1sheeld"
-            android:layout_width="fill_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="onClickDisconnect"
@@ -112,18 +109,17 @@
             <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
+                android:orientation="horizontal">
 
                 <Button
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:onClick="onClickBroadcastOn"
                     android:text="Broadcast Frame On" />
 
                 <Button
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:onClick="onClickBroadcastOff"
@@ -179,18 +175,17 @@
                 <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
+                    android:orientation="horizontal">
 
                     <Button
-                        android:layout_width="fill_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:onClick="onClickSendOnFrame"
                         android:text="Send Frame On" />
 
                     <Button
-                        android:layout_width="fill_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:onClick="onClickSendOffFrame"
@@ -200,18 +195,17 @@
                 <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
+                    android:orientation="horizontal">
 
                     <Button
-                        android:layout_width="fill_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:onClick="onClickRename"
                         android:text="Rename Randomly" />
 
                     <Button
-                        android:layout_width="fill_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:onClick="onClickTestBoard"
@@ -221,8 +215,7 @@
                 <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="3">
+                    android:orientation="horizontal">
 
                     <Button
                         android:layout_width="wrap_content"
@@ -237,10 +230,12 @@
                         android:layout_weight="1"
                         android:onClick="onClickSetBaudRate"
                         android:text="Set Baud Rate" />
+
                     <Spinner
                         android:id="@+id/baud_rate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:background="@drawable/border" />
                 </LinearLayout>
 
@@ -250,11 +245,25 @@
                     android:onClick="onClickBluetoothTestingDialog"
                     android:text="Bluetooth Testing Dialog" />
 
-                <Button
+                <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:onClick="onClickFirmwareUpdate"
-                    android:text="Update Firmware" />
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:onClick="onClickFirmwareUpdate"
+                        android:text="Update Firmware" />
+
+                    <Spinner
+                        android:id="@+id/firmwaresSpinner"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/border" />
+                </LinearLayout>
 
             </LinearLayout>
         </LinearLayout>

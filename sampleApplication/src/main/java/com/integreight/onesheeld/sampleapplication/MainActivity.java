@@ -23,6 +23,7 @@ import com.integreight.onesheeld.sdk.OneSheeldDataCallback;
 import com.integreight.onesheeld.sdk.OneSheeldDevice;
 import com.integreight.onesheeld.sdk.OneSheeldError;
 import com.integreight.onesheeld.sdk.OneSheeldErrorCallback;
+import com.integreight.onesheeld.sdk.OneSheeldFirmwareUpdateCallback;
 import com.integreight.onesheeld.sdk.OneSheeldManager;
 import com.integreight.onesheeld.sdk.OneSheeldRenamingCallback;
 import com.integreight.onesheeld.sdk.OneSheeldScanningCallback;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -47,8 +49,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView oneSheeldNameTextView;
     private Spinner pinsSpinner;
     private Spinner baudRateSpinner;
+    private Spinner firmwareSpinner;
     private ProgressDialog scanningProgressDialog;
     private ProgressDialog connectionProgressDialog;
+    private ProgressDialog firmwareUpdateProgressDialog;
     private LinearLayout oneSheeldLinearLayout;
     private ArrayList<String> connectedDevicesNames;
     private ArrayList<String> scannedDevicesNames;
@@ -57,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<String> connectedDevicesArrayAdapter;
     private ArrayAdapter<String> scannedDevicesArrayAdapter;
     private OneSheeldDevice selectedConnectedDevice = null;
-    private OneSheeldDevice selectedScanedDevice = null;
+    private OneSheeldDevice selectedScannedDevice = null;
     private boolean digitalWriteState = false;
     private byte pushButtonShieldId = OneSheeldSdk.getKnownShields().PUSH_BUTTON_SHIELD.getId();
     private byte pushButtonFunctionId = (byte) 0x01;
@@ -238,6 +242,7 @@ public class MainActivity extends AppCompatActivity {
             device.addRenamingCallback(renamingCallback);
             device.addDataCallback(dataCallback);
             device.addBaudRateQueryCallback(baudRateQueryCallback);
+            device.addFirmwareUpdateCallback(firmwareUpdateCallback);
         }
 
         @Override
@@ -279,10 +284,56 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     };
+
+    private OneSheeldFirmwareUpdateCallback firmwareUpdateCallback = new OneSheeldFirmwareUpdateCallback() {
+        @Override
+        public void onStart(OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    firmwareUpdateProgressDialog.show();
+                    firmwareUpdateProgressDialog.setMessage("Starting..");
+                }
+            });
+        }
+
+        @Override
+        public void onProgress(OneSheeldDevice device, final int totalBytes, final int sentBytes) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    firmwareUpdateProgressDialog.setMessage(((int) ((float) sentBytes / totalBytes * 100)) + "%");
+                }
+            });
+        }
+
+        @Override
+        public void onSuccess(final OneSheeldDevice device) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    firmwareUpdateProgressDialog.dismiss();
+                    Toast.makeText(MainActivity.this, device.getName() + ": Firmware update succeeded!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onFailure(final OneSheeldDevice device, final boolean isTimeOut) {
+            uiThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    firmwareUpdateProgressDialog.dismiss();
+                    Toast.makeText(MainActivity.this, device.getName() + ": Firmware update failed!" + (isTimeOut ? "Time-out occurred!" : ""), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    };
+
     private AdapterView.OnItemClickListener scannedDevicesListViewClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            selectedScanedDevice = oneSheeldScannedDevices.get(position);
+            selectedScannedDevice = oneSheeldScannedDevices.get(position);
             connectButton.setEnabled(true);
         }
     };
@@ -307,11 +358,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickConnect(View v) {
-        if (selectedScanedDevice != null) {
+        if (selectedScannedDevice != null) {
             oneSheeldManager.cancelScanning();
-            connectionProgressDialog.setMessage("Please wait while connecting to " + selectedScanedDevice.getName());
+            connectionProgressDialog.setMessage("Please wait while connecting to " + selectedScannedDevice.getName());
             connectionProgressDialog.show();
-            selectedScanedDevice.connect();
+            selectedScannedDevice.connect();
         }
     }
 
@@ -374,14 +425,12 @@ public class MainActivity extends AppCompatActivity {
         if (selectedConnectedDevice != null) {
             InputStream is;
             try {
-                is = getAssets().open("firmware-plus-500ml.bin");
-
+                is = getAssets().open("firmwares/" + firmwareSpinner.getSelectedItem().toString());
                 byte[] fileBytes = new byte[is.available()];
                 is.read(fileBytes);
                 is.close();
                 selectedConnectedDevice.update(fileBytes);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ignored) {
             }
         }
     }
@@ -465,6 +514,7 @@ public class MainActivity extends AppCompatActivity {
         oneSheeldNameTextView = (TextView) findViewById(R.id.selected_1sheeld_name);
         pinsSpinner = (Spinner) findViewById(R.id.pin_number);
         baudRateSpinner = (Spinner) findViewById(R.id.baud_rate);
+        firmwareSpinner = (Spinner) findViewById(R.id.firmwaresSpinner);
         connectedDevicesNames = new ArrayList<>();
         scannedDevicesNames = new ArrayList<>();
         connectedDevicesArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, connectedDevicesNames);
@@ -477,6 +527,12 @@ public class MainActivity extends AppCompatActivity {
         for (SupportedBaudRate baudRate : SupportedBaudRate.values())
             baudRates.add(String.valueOf(baudRate.getBaudRate()));
         ArrayAdapter<String> baudRatesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, baudRates);
+        ArrayList<String> firmwares = new ArrayList<>();
+        try {
+            Collections.addAll(firmwares, getAssets().list("firmwares"));
+        } catch (IOException ignored) {
+        }
+        ArrayAdapter<String> firmwaresAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, firmwares);
         oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
         connectButton.setEnabled(false);
         disconnectButton.setEnabled(false);
@@ -487,10 +543,12 @@ public class MainActivity extends AppCompatActivity {
         scannedDevicesListView.setAdapter(scannedDevicesArrayAdapter);
         pinsSpinner.setAdapter(pinsArrayAdapter);
         baudRateSpinner.setAdapter(baudRatesAdapter);
+        firmwareSpinner.setAdapter(firmwaresAdapter);
         scannedDevicesListView.setOnItemClickListener(scannedDevicesListViewClickListener);
         connectedDevicesListView.setOnItemClickListener(connectedDevicesListViewClickListener);
         initScanningProgressDialog();
         initConnectionProgressDialog();
+        initFirmwareUpdateProgressDialog();
         initRandomChars();
         initBluetoothTestingDialog();
         initOneSheeldSdk();
@@ -607,6 +665,13 @@ public class MainActivity extends AppCompatActivity {
         connectionProgressDialog.setTitle("Connecting");
         connectionProgressDialog.setCancelable(false);
         connectionProgressDialog.setCanceledOnTouchOutside(false);
+    }
+
+    private void initFirmwareUpdateProgressDialog() {
+        firmwareUpdateProgressDialog = new ProgressDialog(this);
+        firmwareUpdateProgressDialog.setTitle("Updating Firmware..");
+        firmwareUpdateProgressDialog.setCancelable(false);
+        firmwareUpdateProgressDialog.setCanceledOnTouchOutside(false);
     }
 
     @Override
