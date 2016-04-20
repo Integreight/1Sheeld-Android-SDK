@@ -1,3 +1,6 @@
+## v2.1.1(160420) (April 20, 2016)
+  - Fixed a bug where BLE connection attempts get stuck in progress indefinitely sometimes.
+
 ## v2.1.0(160404) (April 4, 2016)
   - Made sure that the verification byte in the received frames is correct.
   - Added the ability to update the board's firmware.

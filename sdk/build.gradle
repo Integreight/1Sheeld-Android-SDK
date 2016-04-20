@@ -13,7 +13,7 @@ ext {
     siteUrl = 'https://github.com/Integreight/1Sheeld-Android-SDK'
     gitUrl = 'https://github.com/Integreight/1Sheeld-Android-SDK.git'
 
-    libraryVersion = '2.1.0'
+    libraryVersion = '2.1.1'
 
     developerId = 'integreight'
     developerName = 'Integreight, Inc.'
@@ -31,8 +31,8 @@ android {
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 22
-        versionCode 160404
-        versionName "2.1.0"
+        versionCode 160420
+        versionName "2.1.1"
     }
     buildTypes {
         release {
