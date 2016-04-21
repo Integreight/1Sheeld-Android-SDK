@@ -166,7 +166,7 @@ class LeConnection extends OneSheeldConnection {
 
     @Override
     boolean write(byte[] buffer) {
-        if (bluetoothGatt == null || buffer.length <= 0 || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID) == null ||
+        if (bluetoothGatt == null || buffer == null || buffer.length <= 0 || !hasGattCallbackReplied || !isConnectionSuccessful || bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID) == null ||
                 bluetoothGatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID).getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID) == null) {
             return false;
         }
