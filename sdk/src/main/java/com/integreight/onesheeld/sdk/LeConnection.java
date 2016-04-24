@@ -63,11 +63,17 @@ class LeConnection extends OneSheeldConnection {
                         BluetoothUtils.setCharacteristicNotification(gatt, commChar, true);
                         commChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
                         notifyConnectionSuccess();
-                    } else notifyConnectionFailure();
-                } else
+                    } else {
+                        BluetoothUtils.refreshDeviceCache(gatt);
+                        notifyConnectionFailure();
+                    }
+                } else {
+                    BluetoothUtils.refreshDeviceCache(gatt);
                     notifyConnectionFailure();
+                }
 
             } else {
+                BluetoothUtils.refreshDeviceCache(gatt);
                 notifyConnectionFailure();
             }
         }
@@ -270,7 +276,6 @@ class LeConnection extends OneSheeldConnection {
     @Override
     protected void onClose() {
         if (bluetoothGatt != null) {
-            BluetoothUtils.refreshDeviceCache(bluetoothGatt);
             bluetoothGatt.close();
             bluetoothGatt = null;
         }
