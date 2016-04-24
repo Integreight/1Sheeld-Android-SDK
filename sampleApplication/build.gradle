@@ -8,8 +8,8 @@ android {
         applicationId "com.integreight.onesheeld.sampleapplication"
         minSdkVersion 9
         targetSdkVersion 22
-        versionCode 160420
-        versionName "2.1.1"
+        versionCode 160424
+        versionName "2.1.2"
     }
     buildTypes {
         release {
@@ -21,7 +21,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:23.1.1'
-    compile 'com.integreight.onesheeld:sdk:2.1.1'
-//    compile project(':sdk')
+    compile 'com.android.support:appcompat-v7:23.3.0'
+//    compile 'com.integreight.onesheeld:sdk:2.1.2'
+    compile project(':sdk')
 }

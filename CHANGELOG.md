@@ -1,3 +1,8 @@
+## v2.1.2(160424) (April 24, 2016)
+  - Fixed a bug where BLE connection attempts get stuck in progress indefinitely sometimes.
+  - Refresh the ble device cache only in case of connectionFailure.
+  - Minor bug fixes.
+
 ## v2.1.1(160420) (April 20, 2016)
   - Fixed a bug where BLE connection attempts get stuck in progress indefinitely sometimes.
 
