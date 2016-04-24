@@ -262,7 +262,7 @@ class LeConnection extends OneSheeldConnection {
             bluetoothGatt = device.getBluetoothDevice().connectGatt(OneSheeldSdk.getContext(), false, gattCallback);
             while (!hasGattCallbackReplied) {
                 try {
-                    connectionLock.wait();
+                    connectionLock.wait(100);
                 } catch (InterruptedException e) {
                     connectionInterrupt();
                     Thread.currentThread().interrupt();
