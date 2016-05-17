@@ -1278,11 +1278,6 @@ public class OneSheeldDevice {
         sendUnMuteFrame();
         sendBaudRateQueryFrame();
         sendLibraryVersionQueryFrame();
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        }
         notifyHardwareOfConnection();
     }
 
