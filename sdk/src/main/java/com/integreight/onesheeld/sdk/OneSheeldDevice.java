@@ -734,7 +734,7 @@ public class OneSheeldDevice {
 
     private void notifyHardwareOfConnection() {
         Log.i("Device " + this.name + ": Notifying the board with connection.");
-        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED));
+        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED), true);
     }
 
 
@@ -1187,7 +1187,7 @@ public class OneSheeldDevice {
     }
 
     private void sendLibraryVersionQueryFrame() {
-        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION));
+        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION), true);
     }
 
 
