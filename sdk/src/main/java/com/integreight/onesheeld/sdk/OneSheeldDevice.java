@@ -2153,7 +2153,7 @@ public class OneSheeldDevice {
                     }
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
-                    ShieldFrameTimeout = new TimeOut(2000);
+                    ShieldFrameTimeout = new TimeOut(3000);
                     int tempArduinoLibVersion = readByteFromSerialBuffer();
                     byte shieldId = readByteFromSerialBuffer();
                     byte verificationByte = readByteFromSerialBuffer();
@@ -2256,7 +2256,7 @@ public class OneSheeldDevice {
                     Thread.currentThread().interrupt();
                     return;
                 } catch (ShieldFrameNotComplete e) {
-                    Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 2 seconds, canceling what we've read so far.");
+                    Log.i("Device " + OneSheeldDevice.this.name + ": Frame wasn't completed in 3 seconds, canceling what we've read so far.");
                     if (ShieldFrameTimeout != null)
                         ShieldFrameTimeout.stopTimer();
                     ShieldFrameTimeout = null;
