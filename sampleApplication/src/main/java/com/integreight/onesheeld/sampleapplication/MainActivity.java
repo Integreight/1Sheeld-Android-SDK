@@ -1,10 +1,17 @@
 package com.integreight.onesheeld.sampleapplication;
 
+import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -43,6 +50,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
+    public static final int PERMISSION_REQUEST_CODE = 1;
     private Handler uiThreadHandler = new Handler();
     private Button connectButton;
     private Button disconnectButton;
@@ -348,13 +356,15 @@ public class MainActivity extends AppCompatActivity {
     };
 
     public void onClickScan(View v) {
-        scanningProgressDialog.show();
-        oneSheeldManager.setScanningTimeOut(20);
-        oneSheeldManager.cancelScanning();
-        scannedDevicesNames.clear();
-        scannedDevicesArrayAdapter.notifyDataSetChanged();
-        oneSheeldScannedDevices.clear();
-        oneSheeldManager.scan();
+        if (checkAndAskForLocationPermission()) {
+            scanningProgressDialog.show();
+            oneSheeldManager.setScanningTimeOut(20);
+            oneSheeldManager.cancelScanning();
+            scannedDevicesNames.clear();
+            scannedDevicesArrayAdapter.notifyDataSetChanged();
+            oneSheeldScannedDevices.clear();
+            oneSheeldManager.scan();
+        }
     }
 
     public void onClickConnect(View v) {
@@ -680,6 +690,66 @@ public class MainActivity extends AppCompatActivity {
         oneSheeldManager.disconnectAll();
         bluetoothTestingDialog.dismiss();
         super.onDestroy();
+    }
+
+    private boolean checkAndAskForLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                AlertDialog.Builder locationPremissionExplanationDialog = new AlertDialog.Builder(this);
+                locationPremissionExplanationDialog.setMessage("Bluetooth scan needs location permission.").setPositiveButton("Allow", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                                MainActivity.PERMISSION_REQUEST_CODE);
+                    }
+                }).setNegativeButton("Deny", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(MainActivity.this, "We can't start scanning until you grant the Location permission.", Toast.LENGTH_SHORT).show();
+                    }
+                }).create();
+                locationPremissionExplanationDialog.show();
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                        MainActivity.PERMISSION_REQUEST_CODE);
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (permissions.length > 0) {
+                if (permissions[0].equals(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(MainActivity.this, "You can start scanning now.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION))
+                                Toast.makeText(MainActivity.this, "We can't start scanning until you grant the Location permission.", Toast.LENGTH_SHORT).show();
+                            else
+                                Toast.makeText(MainActivity.this, "We can't start scanning until you grant the Location permission from the settings.", Toast.LENGTH_SHORT).show();
+
+
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private class BluetoothTestingSendingThread extends Thread {
