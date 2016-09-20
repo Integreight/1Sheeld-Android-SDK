@@ -246,9 +246,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onDisconnect(OneSheeldDevice device) {
+        public void onDisconnect(final OneSheeldDevice device) {
             final String deviceName = device.getName();
-
             uiThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -259,14 +258,15 @@ public class MainActivity extends AppCompatActivity {
                     connectButton.setEnabled(false);
                     disconnectButton.setEnabled(false);
                     oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+                    oneSheeldConnectedDevices.remove(device);
+                    if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.contains(device)) {
+                        oneSheeldScannedDevices.add(device);
+                        scannedDevicesNames.add(device.getName());
+                    }
+                    scannedDevicesArrayAdapter.notifyDataSetChanged();
+                    bluetoothTestingDialog.dismiss();
                 }
             });
-            oneSheeldConnectedDevices.remove(device);
-            if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.contains(device)) {
-                oneSheeldScannedDevices.add(device);
-                scannedDevicesNames.add(device.getName());
-            }
-            bluetoothTestingDialog.dismiss();
         }
     };
     private OneSheeldErrorCallback errorCallback = new OneSheeldErrorCallback() {
