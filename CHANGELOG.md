@@ -1,5 +1,12 @@
+## v2.1.4(160920) (September 20, 2016)
+  - Fixed a bug where the sdk won't connect to or detect disconnects from 1Sheeld+ on Android 7.0 (Nougat) because of a deadlock.
+  - Made the sample app asks for the required location permission on Android Marshmallow and later.
+  - Removed the unnecessary 200ms delay between the library frames during firmware initialization.
+  - Fixed some other minor bugs.
+
 ## v2.1.3(160517) (May 17, 2016)
   - Made the maximum time to receive a library frame 3 seconds instead of 2.
+  - Added a 200ms delay between the library frames during firmware initialization.
 
 ## v2.1.2(160424) (April 24, 2016)
   - Fixed a bug where BLE connection attempts get stuck in progress indefinitely sometimes.
