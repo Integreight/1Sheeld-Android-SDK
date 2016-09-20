@@ -40,3 +40,4 @@ manifest-merger-release-report.txt
 .gradle/
 build/
 captures/
+gradle.properties
