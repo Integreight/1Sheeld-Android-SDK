@@ -1127,19 +1127,21 @@ public class OneSheeldDevice {
     }
 
     private void setDigitalInputs(int portNumber, int portData) {
-        int portDifference = digitalInputData[portNumber] ^ portData;
-        digitalInputData[portNumber] = portData;
-        ArrayList<Integer> differentPinNumbers = new ArrayList<>();
-        for (int i = 0; i < 8; i++) {
-            if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
-        }
+        if (portNumber < 3) {
+            int portDifference = digitalInputData[portNumber] ^ portData;
+            digitalInputData[portNumber] = portData;
+            ArrayList<Integer> differentPinNumbers = new ArrayList<>();
+            for (int i = 0; i < 8; i++) {
+                if (BitsUtils.isBitSet((byte) portDifference, i)) differentPinNumbers.add(i);
+            }
 
-        for (int pinNumber : differentPinNumbers) {
-            int actualPinNumber = (portNumber << 3) + pinNumber;
-            if (isPinDebuggingEnabled)
-                Log.i("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
-            for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
-                oneSheeldDataCallback.onDigitalPinStatusChange(OneSheeldDevice.this, actualPinNumber, getDigitalPinStatus(actualPinNumber));
+            for (int pinNumber : differentPinNumbers) {
+                int actualPinNumber = (portNumber << 3) + pinNumber;
+                if (isPinDebuggingEnabled)
+                    Log.i("Device " + this.name + ": Pin #" + actualPinNumber + " status changed to " + (getDigitalPinStatus(actualPinNumber) ? "High" : "Low") + ".");
+                for (OneSheeldDataCallback oneSheeldDataCallback : dataCallbacks) {
+                    oneSheeldDataCallback.onDigitalPinStatusChange(OneSheeldDevice.this, actualPinNumber, getDigitalPinStatus(actualPinNumber));
+                }
             }
         }
     }
