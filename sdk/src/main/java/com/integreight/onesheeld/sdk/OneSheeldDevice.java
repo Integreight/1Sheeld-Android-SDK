@@ -2071,12 +2071,12 @@ public class OneSheeldDevice {
         public void run() {
             if (connection == null) return;
             Log.i("Device " + OneSheeldDevice.this.name + ": Establishing connection.");
-            Log.i("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
-            initFirmware();
-            Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
             synchronized (isConnectedLock) {
                 isConnected = true;
             }
+            Log.i("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
+            initFirmware();
+            Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
             onConnect();
             while (!this.isInterrupted()) {
                 byte[] readBytes = connection.read();
