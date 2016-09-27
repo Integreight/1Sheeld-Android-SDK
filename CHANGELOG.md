@@ -1,3 +1,7 @@
+## v2.1.5(160927) (September 27, 2016)
+  - Fixed a bug where the sdk won't init 1Sheeld+ boards or query their information after successful connection.
+  - Prevented a crash when the SDK read a pin from a wrong port number.
+
 ## v2.1.4(160920) (September 20, 2016)
   - Fixed a bug where the sdk won't connect to or detect disconnects from 1Sheeld+ on Android 7.0 (Nougat) because of a deadlock.
   - Made the sample app asks for the required location permission on Android Marshmallow and later.
