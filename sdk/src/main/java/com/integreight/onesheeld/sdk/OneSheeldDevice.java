@@ -118,6 +118,7 @@ public class OneSheeldDevice {
     private final Object processInputLock = new Object();
     private final Object isUpdatingFirmwareLock = new Object();
     private final Object bluetoothBufferLock = new Object();
+    private final Object bufferThreadsInitLock = new Object();
     private Queue<ShieldFrame> queuedFrames;
     private LinkedBlockingQueue<Byte> bluetoothBuffer;
     private LinkedBlockingQueue<Byte> serialBuffer;
@@ -330,11 +331,13 @@ public class OneSheeldDevice {
     }
 
     private void stopBuffersThreads() {
-        if (serialBufferListeningThread != null) {
-            serialBufferListeningThread.stopRunning();
-        }
-        if (bluetoothBufferListeningThread != null) {
-            bluetoothBufferListeningThread.stopRunning();
+        synchronized (bufferThreadsInitLock) {
+            if (serialBufferListeningThread != null) {
+                serialBufferListeningThread.stopRunning();
+            }
+            if (bluetoothBufferListeningThread != null) {
+                bluetoothBufferListeningThread.stopRunning();
+            }
         }
     }
 
@@ -733,8 +736,10 @@ public class OneSheeldDevice {
     }
 
     private void notifyHardwareOfConnection() {
-        Log.i("Device " + this.name + ": Notifying the board with connection.");
-        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED), true);
+        if (isConnected()) {
+            Log.i("Device " + this.name + ": Notifying the board with connection.");
+            sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, BT_CONNECTED), true);
+        }
     }
 
 
@@ -875,8 +880,10 @@ public class OneSheeldDevice {
     }
 
     private void respondToIsAlive() {
-        synchronized (sendingDataLock) {
-            sysex(IS_ALIVE, new byte[]{});
+        if (isConnected()) {
+            synchronized (sendingDataLock) {
+                sysex(IS_ALIVE, new byte[]{});
+            }
         }
     }
 
@@ -917,18 +924,22 @@ public class OneSheeldDevice {
     }
 
     private void enableReporting() {
-        Log.i("Device " + this.name + ": Enable digital pins reporting.");
-        synchronized (sendingDataLock) {
-            for (byte i = 0; i < 3; i++) {
-                write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
+        if (isConnected()) {
+            Log.i("Device " + this.name + ": Enable digital pins reporting.");
+            synchronized (sendingDataLock) {
+                for (byte i = 0; i < 3; i++) {
+                    write(new byte[]{(byte) (REPORT_DIGITAL | i), 1});
+                }
             }
         }
     }
 
     private void queryInputPinsValues() {
-        Log.i("Device " + this.name + ": Query the current status of the pins.");
-        synchronized (sendingDataLock) {
-            sysex(REPORT_INPUT_PINS, new byte[]{});
+        if (isConnected()) {
+            Log.i("Device " + this.name + ": Query the current status of the pins.");
+            synchronized (sendingDataLock) {
+                sysex(REPORT_INPUT_PINS, new byte[]{});
+            }
         }
     }
 
@@ -1012,9 +1023,11 @@ public class OneSheeldDevice {
     }
 
     private void setAllPinsAsInput() {
-        Log.i("Device " + this.name + ": Set all digital pins as input.");
-        for (int i = 0; i < 20; i++) {
-            pinMode(i, INPUT);
+        if (isConnected()) {
+            Log.i("Device " + this.name + ": Set all digital pins as input.");
+            for (int i = 0; i < 20; i++) {
+                pinMode(i, INPUT);
+            }
         }
     }
 
@@ -1165,8 +1178,10 @@ public class OneSheeldDevice {
     }
 
     private void sendFirmwareVersionQueryFrame() {
-        synchronized (sendingDataLock) {
-            write(new byte[]{REPORT_VERSION});
+        if (isConnected()) {
+            synchronized (sendingDataLock) {
+                write(new byte[]{REPORT_VERSION});
+            }
         }
     }
 
@@ -1189,7 +1204,9 @@ public class OneSheeldDevice {
     }
 
     private void sendLibraryVersionQueryFrame() {
-        sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION), true);
+        if (isConnected()) {
+            sendShieldFrame(new ShieldFrame(CONFIGURATION_SHIELD_ID, QUERY_LIBRARY_VERSION), true);
+        }
     }
 
 
@@ -1260,8 +1277,10 @@ public class OneSheeldDevice {
         stopBuffersThreads();
         clearAllBuffers();
         resetProcessInput();
-        bluetoothBufferListeningThread = new BluetoothBufferListeningThread();
-        serialBufferListeningThread = new SerialBufferListeningThread();
+        synchronized (bufferThreadsInitLock) {
+            bluetoothBufferListeningThread = new BluetoothBufferListeningThread();
+            serialBufferListeningThread = new SerialBufferListeningThread();
+        }
         while (true) {
             if (isBluetoothBufferWaiting) break;
         }
@@ -1303,8 +1322,10 @@ public class OneSheeldDevice {
     }
 
     private void sendBaudRateQueryFrame() {
-        synchronized (sendingDataLock) {
-            sysex(QUERY_BAUD_RATE, new byte[]{});
+        if (isConnected()) {
+            synchronized (sendingDataLock) {
+                sysex(QUERY_BAUD_RATE, new byte[]{});
+            }
         }
     }
 
@@ -1354,14 +1375,18 @@ public class OneSheeldDevice {
     }
 
     private void sendMuteFrame() {
-        synchronized (sendingDataLock) {
-            sysex(MUTE_FIRMATA, new byte[]{1});
+        if (isConnected()) {
+            synchronized (sendingDataLock) {
+                sysex(MUTE_FIRMATA, new byte[]{1});
+            }
         }
     }
 
     private void sendUnMuteFrame() {
-        synchronized (sendingDataLock) {
-            sysex(MUTE_FIRMATA, new byte[]{0});
+        if (isConnected()) {
+            synchronized (sendingDataLock) {
+                sysex(MUTE_FIRMATA, new byte[]{0});
+            }
         }
     }
 
@@ -2076,15 +2101,19 @@ public class OneSheeldDevice {
             }
             Log.i("Device " + OneSheeldDevice.this.name + ": Initializing board and querying its information.");
             initFirmware();
-            Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
-            onConnect();
-            while (!this.isInterrupted()) {
-                byte[] readBytes = connection.read();
-                synchronized (bluetoothBufferLock) {
-                    for (byte readByte : readBytes) {
-                        bluetoothBuffer.add(readByte);
+            if (isConnected()) {
+                Log.i("Device " + OneSheeldDevice.this.name + ": Device connected, initialized and ready for communication.");
+                onConnect();
+                while (!this.isInterrupted()) {
+                    byte[] readBytes = connection.read();
+                    synchronized (bluetoothBufferLock) {
+                        for (byte readByte : readBytes) {
+                            bluetoothBuffer.add(readByte);
+                        }
                     }
                 }
+            } else {
+                Log.i("Device " + OneSheeldDevice.this.name + ": Device connection interrupted.");
             }
         }
 
