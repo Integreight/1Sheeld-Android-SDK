@@ -249,7 +249,7 @@ class LeConnection extends OneSheeldConnection {
                 if (!isSet) {
                     return false;
                 }
-                boolean didWriteSuccessfully = bluetoothGatt.writeCharacteristic(commChar);
+                boolean didWriteSuccessfully = bluetoothGatt != null && bluetoothGatt.writeCharacteristic(commChar);
                 if (!didWriteSuccessfully) {
                     return false;
                 }
@@ -292,9 +292,6 @@ class LeConnection extends OneSheeldConnection {
             while (!hasGattCallbackReplied) {
                 try {
                     connectionLock.wait(100);
-                    if (hasGattCallbackReplied && isConnectionSuccessful) {
-                        Thread.sleep(1000);
-                    }
                 } catch (InterruptedException e) {
                     connectionInterrupt();
                     Thread.currentThread().interrupt();
