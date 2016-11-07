@@ -20,6 +20,7 @@ import android.annotation.TargetApi;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.os.Build;
@@ -40,7 +41,27 @@ class LeConnection extends OneSheeldConnection {
     private boolean isConnectionSuccessful;
     private byte[] pendingSending;
     private TimeOut sendingPendingBytesTimeOut;
+    private boolean isCharacteristicNotificationSet;
     private BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            BluetoothGattService service = gatt.getService(BluetoothUtils.COMMUNICATIONS_SERVICE_UUID);
+            if (service != null) {
+                BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
+                if (commChar != null) {
+                    BluetoothGattDescriptor configDescriptor = commChar.getDescriptor(BluetoothUtils.DEVICE_CONFIG_CHARACTERISTIC);
+                    if (isCharacteristicNotificationSet) {
+                        if (configDescriptor != null && configDescriptor == descriptor && status == BluetoothGatt.GATT_SUCCESS) {
+                            notifyConnectionSuccess();
+                        } else {
+                            notifyConnectionFailure();
+                        }
+                        isCharacteristicNotificationSet = false;
+                    }
+                }
+            }
+        }
+
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
@@ -60,9 +81,13 @@ class LeConnection extends OneSheeldConnection {
                     BluetoothGattCharacteristic commChar = service.getCharacteristic(BluetoothUtils.COMMUNICATIONS_CHAR_UUID);
                     if (commChar != null && (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0 &&
                             (commChar.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
-                        BluetoothUtils.setCharacteristicNotification(gatt, commChar, true);
-                        commChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-                        notifyConnectionSuccess();
+                        isCharacteristicNotificationSet = BluetoothUtils.setCharacteristicNotification(gatt, commChar, true);
+                        if (isCharacteristicNotificationSet) {
+                            commChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+                        } else {
+                            BluetoothUtils.refreshDeviceCache(gatt);
+                            notifyConnectionFailure();
+                        }
                     } else {
                         BluetoothUtils.refreshDeviceCache(gatt);
                         notifyConnectionFailure();
@@ -119,6 +144,7 @@ class LeConnection extends OneSheeldConnection {
         this.isConnectionSuccessful = false;
         this.pendingSending = new byte[]{};
         this.writeLock = new Object();
+        this.isCharacteristicNotificationSet = false;
     }
 
     private void notifyConnectionFailure() {
