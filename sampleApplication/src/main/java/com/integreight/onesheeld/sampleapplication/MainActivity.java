@@ -266,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
                     connectButton.setEnabled(false);
                     disconnectButton.setEnabled(false);
                     oneSheeldLinearLayout.setVisibility(View.INVISIBLE);
+                    connectionProgressDialog.dismiss();
                     oneSheeldConnectedDevices.remove(device);
                     if (!scannedDevicesNames.contains(device.getName()) && !oneSheeldScannedDevices.contains(device)) {
                         oneSheeldScannedDevices.add(device);
