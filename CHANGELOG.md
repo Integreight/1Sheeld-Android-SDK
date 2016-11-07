@@ -1,3 +1,8 @@
+## v2.2.0(161107) (November 7, 2016)
+  - Fixed a bug that prevented successful connection callbacks from being called on Android Nougat.
+  - Fixed a bug that sometimes the sdk doesn't detect in the pending connection was interrupted.
+  - Fixed some other minor bugs.
+
 ## v2.1.5(160927) (September 27, 2016)
   - Fixed a bug where the sdk won't init 1Sheeld+ boards or query their information after successful connection.
   - Prevented a crash when the SDK read a pin from a wrong port number.
