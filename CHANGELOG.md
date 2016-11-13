@@ -1,4 +1,4 @@
-## v2.2.0(161107) (November 7, 2016)
+## v2.2.0(161113) (November 13, 2016)
   - Fixed a bug that prevented successful connection callbacks from being called on Android Nougat.
   - Fixed a bug that sometimes the sdk doesn't detect in the pending connection was interrupted.
   - Fixed some other minor bugs.
