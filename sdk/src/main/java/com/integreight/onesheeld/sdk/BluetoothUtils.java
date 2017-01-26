@@ -31,8 +31,9 @@ import java.util.UUID;
 abstract class BluetoothUtils {
     public static final int MAXIMUM_CONNECTED_BLUETOOTH_DEVICES = 7;
     static final UUID BLUETOOTH_SPP_PROFILE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    static final UUID COMMUNICATIONS_SERVICE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
-    static final UUID COMMUNICATIONS_CHAR_UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
+    static final UUID COMMUNICATIONS_SERVICE_UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+    static final UUID COMMUNICATIONS_TX_CHAR_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
+    static final UUID COMMUNICATIONS_RX_CHAR_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
     static final UUID DEVICE_CONFIG_CHARACTERISTIC = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
 
